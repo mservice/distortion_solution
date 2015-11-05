@@ -502,3 +502,113 @@ def find_best_fit(yeldax, yelday , plot_look=False, pos_txt='sig_trimapril_pos.t
         plt.title('Difference Legendre and Yelda')
         plt.savefig('Leg'+str(i)+'_resid_yelda.png')
         
+
+def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
+    '''
+    goes through successive orders of legendre polynomial and compare the results for fitting the yelda data to the final Yelada sidtortin map
+    '''
+
+    for i in range(3,8):
+        t, outx, outy, dx, dy, sbooln = fit_dist(pos_txt=yelda_pos,order=i, n_iter_fit=1, wtype=2)
+
+        plot_dist( yeldax,outx, title2='Leg:'+str(i), title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='yelda_plots/Dist_sol_X_'+str(i)+'.png')
+        plot_dist( yelday,outy, title2='Leg:'+str(i), title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='yelda_plots/Dist_sol_Y_'+str(i)+'.png')
+
+        plt.figure(1)
+        plt.clf()
+        plt.hist((yeldax-outx).flatten(), bins=100, alpha=.5, label='x')
+        plt.hist((yelday-outy).flatten(), bins=100, alpha=.5, label='y')
+        plt.xlabel('difference (pixels)')
+        plt.ylabel('N')
+        plt.title('Difference L'+str(i)+' and Yelda')
+        plt.savefig('yelda_plots/residual_'+str(i)+'.png')
+
+        ref = Table.read(yelda_pos, format='ascii.fixed_width')
+        tot_err = np.sqrt(ref['xerr']**2 + ref['yerr']**2)
+        dxn = dx / tot_err[sbooln]
+        dyn = dy / tot_err[sbooln]
+
+        xN , xbin_edge = np.histogram(dxn, bins=100, range=(-10,10))
+        yN , ybin_edge = np.histogram(dyn, bins=100, range=(-10,10))
+        #import pdb; pdb.set_trace()
+        bcenx = np.zeros(len(xbin_edge)-1)
+        bceny = np.zeros(len(xbin_edge)-1)
+        for dd in range(len(xbin_edge)-1):
+            bcenx[dd] = np.mean(xbin_edge[dd] + xbin_edge[dd+1])/2.0
+            bceny[dd] = np.mean(ybin_edge[dd] + ybin_edge[dd+1])/2.0
+        #import pdb; pdb.set_trace()
+        fit_p  = fitting.LevMarLSQFitter()
+        
+        gy = models.Gaussian1D(mean=0, stddev=1.0)
+        gy.mean.fixed =True
+        #gy.stddev.fixed = True
+
+        gx = models.Gaussian1D(mean=0, stddev=1.0)
+        gx.mean.fixed =True
+        #gx.stddev.fixed = True
+
+        mx = fit_p(gx , bcenx, xN)
+        my = fit_p(gy , bceny , yN)
+
+        #import pdb; pdb.set_trace()
+        chix = np.sum((mx(bcenx) - xN)**2/ mx(bcenx))
+        chiy = np.sum((my(bceny) - yN)**2/ my(bceny))
+
+        
+
+        
+        plt.figure(1)
+        plt.clf()
+        plt.scatter(bcenx, xN)
+        plt.plot(bcenx, mx(bcenx))
+        plt.text(np.min(bcenx)+1, np.max(xN)/2.0, r'$\chi^{2}$: '+str(chix)[:5])
+        plt.text(np.min(bcenx)+1, np.max(xN)/2.0+10, r'$\sigma$:'+str(mx.stddev.value)[:6])
+        #plt.text(np.min(bcenx)+2, np.max(xN)/2.0-30,'smooth factor: '+str(i))
+        plt.title('X residual Leg order'+str(i))
+        plt.xlabel('residual / error')
+        plt.ylabel('N')
+        plt.savefig('yelda_plots/Leg_x_resid_ord'+str(i)+'.png')
+
+        plt.figure(2)
+        plt.clf()
+        #plt.hist(dyn, bins=100)
+        plt.scatter(bceny, yN)
+        plt.plot(bceny, my(bceny))
+        plt.text(np.min(bceny)+1, np.max(yN)/2.0, r'$\chi^{2}$: '+str(chiy)[:5])
+        plt.text(np.min(bceny)+1, np.max(yN)/2.0-+10, r'$\sigma$:'+str(my.stddev.value)[:6])
+        #plt.text(np.min(bceny)+2, np.max(yN)/2.0-30,'smooth factor: '+str(i))
+        plt.title('Y residual Leg order'+str(i))
+        plt.xlabel('residual / error')
+        plt.ylabel('N')
+        plt.savefig('yelda_plots/Leg_y_resid_ord'+str(i)+'.png')
+       
+
+def iter_sol_leg(iter=5):
+    #assumes intiial
+    initial_data = 'april_pos.txt'
+    #spaitally sigma trim the positions
+    sig_trim_ref(initial_data)
+    #now fit the distortion, I choose 5th order legendre polynomials
+    ref_base = 'Nref_leg5'
+    data_base = 'pos_leg5'
+    t, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=5, n_iter_fit=1, lookup=False)
+    tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
+    hst = Table.read('../../../M53_F814W/F814_pix_err.dat', format='ascii')
+
+    run_base = 'Nref_leg5'
+    for i in range(iter):
+        #first need new reference (using the above distortion solution)
+        mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, t, outfile_pre=run_base+str(i))
+        #now need new data table, based on the new reference
+        match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
+        #created a new reference, need to sigma trim it
+        sig_trim_ref(data_base+str(i)+'.txt')
+        #now can fit distortion using this as the reference
+        t, dx5n, dy5n, sbooln, b2 = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=5, n_iter_fit=1, lookup=False)
+
+        #save tranform objects in case I want them later
+        f= open(run_base+str(i)+'.trans', 'w')
+        pickle.dump(t, f)
+
+        #now we have a new distortion solution, so we return to step 1
+
