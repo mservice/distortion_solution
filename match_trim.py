@@ -21,7 +21,7 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     matches the lis file from Starfinder with the HST reference
     uses the fact that the first star is in the HST Reference (by name) to trim down the Stars from HST for matching
     Note: the HST coordiantes for this are not DAR corrected
-     I use a matching raius of 2 Nirc2 pixels (20 mas)
+    I use a matching raius of 4 Nirc2 pixels (20 mas)
     
     '''
 
@@ -81,22 +81,19 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     return   stf['col4'][idx1], stf['col5'][idx1], xnew[idx2], ynew[idx2], hst['Name'][idx2], np.ones(len(hst), dtype='bool'), idx2, stf['col2'][idx1], hst['Mag'][idx2], hst['xerr'][idx2], hst['yerr'][idx2]
 
 
-def match2hst_err(lis_f, ref, fits_file, ecut=.002, ref_scale=1.0,ref_angle=0 ,ap_dar=True, rev_x=False):
+def match2hst_err(lis_f, ref, fits_file, ecut=.002, ref_scale=1.0,ap_dar=True, ):
     '''
     lis_f is the name of the fits table containing the Nirc2 coordiantes form a single pointing
     ref is the "distortion free" reference (either Nirc2 or HST)
     ecut (arcseconds) is the error cut that must be met for stars to be included in the 4 parameter tranfomtion between reference and lis_f
-    rev_x is bool, if True multioply xref by -1.0.  this is done to maje +x to the west for the DAR correction
     
     ref_scale is scale if refernce catalog in arcsconds/pixel
     '''
 
-    if ref_angle != 0:
-        xinit , yinit = rot_lis(ref['Xarc'], ref['Yarc'], ref_angle)
-        
-    else:
-        xinit = ref['Xarc']
-        yinit = ref['Yarc']
+   
+    
+    xinit = ref['Xarc']
+    yinit = ref['Yarc']
         
     stf = Table.read(lis_f, format='fits')
     
@@ -106,12 +103,10 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.002, ref_scale=1.0,ref_angle=0 ,a
 
     if ap_dar:
         #this applies DAR to space coordinates, to make thme comparable to the Nirc2 distorted frames
-        if rev_x:
-            #import pdb;pdb.set_trace()
-            xhst, yhst = applyDAR_coo(fits_file,xinit*ref_scale*-1.0,yinit*ref_scale)
-            xhst = xhst * -1.0
-        else:
-            xhst, yhst = applyDAR_coo(fits_file,xinit*ref_scale,yinit*ref_scale)
+        
+        #import pdb;pdb.set_trace()
+        xhst, yhst = applyDAR_coo(fits_file,xinit*ref_scale,yinit*ref_scale)
+        
     else:
         xhst = xinit * ref_scale
         yhst = yinit * ref_scale
@@ -474,7 +469,7 @@ def precision_stack(lis_files, hst_tab_ref, hst_tab_red, n_iter=3, order=3, plot
         
 
     
-def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale, ref_angle,plot_hist=False, ap_dar=True, rev_x=False):
+def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_dar=True):
     '''
     arguements:
     lis_files: list of fileanmes that are the NIRC2 position catalogs
@@ -516,7 +511,7 @@ def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale, ref_angle,plot_hist=
         
     for index, i in enumerate(lis_files):
            
-        x,y,xr,yr, name, s_mag, fmag,hst_xerr, hst_yerr, stf_xerr, stf_yerr = match2hst_err(i, hst_tab_ref, DAR_fits[index],ref_angle=ref_angle,ref_scale=ref_scale, ap_dar=ap_dar, rev_x=rev_x)
+        x,y,xr,yr, name, s_mag, fmag,hst_xerr, hst_yerr, stf_xerr, stf_yerr = match2hst_err(i, hst_tab_ref, DAR_fits[index],ref_scale=ref_scale, ap_dar=ap_dar)
         for ii in range(len(x)):
             xstf.append(x[ii])
             ystf.append(y[ii])
@@ -721,7 +716,7 @@ def match_and_write(outfile='april_pos.txt', fits_lis='first_fits_m.lis'):
 
     #angle is orientation of the HST frame, from header in this data (M53) is -102.5 degrees
 
-    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name,frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref, lis_fits['col1'], .05 , -102.5 , rev_x=True, ap_dar=True)
+    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name,frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref, lis_fits['col1'], .05, ap_dar=True)
     outtab = Table(data=[name, hmag, x, xerr, y, yerr, xref , xreferr, yref , yreferr, frame_num, frame_name], names=['name','mag', 'x', 'xerr', 'y', 'yerr', 'xr', 'xrerr', 'yr', 'yrerr', 'frame_num', 'frame_name'])
 
     outtab.write(outfile, format='ascii.fixed_width')
@@ -734,7 +729,7 @@ def match_and_write2(reffile='NIRC2_leg_reference.txt',fits_lis='first_fits_m.li
 
     #DAR_fits = Table.read(fits_lis, format='ascii.no_header')
 
-    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name, frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref,lis_fits['col1'], 1.0, 0)
+    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name, frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref,lis_fits['col1'], 1.0)
     outtab = Table(data=[name, hmag, x, xerr, y, yerr, xref , xreferr, yref , yreferr, frame_num, frame_name], names=['name','mag', 'x', 'xerr', 'y', 'yerr', 'xr', 'xrerr', 'yr', 'yrerr', 'frame_num', 'frame_name'])
     
 
@@ -1010,13 +1005,3 @@ def writefits2txt(lis_txt):
 
 
 
-
-def rot_lis(x, y, angle):
-    '''
-    rotates x and y by the angle givem
-    angle should be in degrees
-    '''
-    ang = np.deg2rad(angle)
-    xnew = x * np.cos(ang) - y * np.sin(ang)
-    ynew = x * np.sin(ang) + y * np.cos(ang)
-    return xnew, ynew
