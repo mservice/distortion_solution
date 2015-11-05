@@ -196,7 +196,7 @@ def match2hst_err_ret_hst(lis_f,fits_file ,hst,tx, ty, ecut=.001, spline=False):
         
             
     
-    return   xnew, ynew, stf['col0'], hst['Mag'][idhst], stf['col9']
+    return   xnew, ynew, stf['col0'], hst['Mag'][idhst], stf['col5']
 
 def mk_reference_spline(lis_files, fits_files,  hst_tab_ref, tx, ty, outfile='Nspline_ref.txt'):
     '''
