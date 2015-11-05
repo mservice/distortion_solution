@@ -14,7 +14,7 @@ import datetime
 from nirc2.reduce.dar import *
 from jlu.util import statsIter
 import pickle
-
+from distortion_solution import match_trim
 
 def leg2lookup(t, plot=False):
 
@@ -583,32 +583,52 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
         plt.savefig('yelda_plots/Leg_y_resid_ord'+str(i)+'.png')
        
 
-def iter_sol_leg(iter=5):
+def iter_sol_leg(order, iter=5):
     #assumes intiial
     initial_data = 'april_pos.txt'
     #spaitally sigma trim the positions
-    sig_trim_ref(initial_data)
+    match_trim.sig_trim_ref(initial_data)
     #now fit the distortion, I choose 5th order legendre polynomials
-    ref_base = 'Nref_leg5'
-    data_base = 'pos_leg5'
+    ref_base = 'Nref_leg'+str(order)
+    data_base = 'pos_leg'+str(order)
     t, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=5, n_iter_fit=1, lookup=False)
+    #make plots
+    
     tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
-    hst = Table.read('../../../M53_F814W/F814_pix_err.dat', format='ascii')
+    hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
 
-    run_base = 'Nref_leg5'
+    run_base = 'Nref_leg'+str(order)
     for i in range(iter):
         #first need new reference (using the above distortion solution)
-        mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, t, outfile_pre=run_base+str(i))
+        match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, t, outfile_pre=run_base+str(i))
         #now need new data table, based on the new reference
-        match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
+        match_trim.match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
         #created a new reference, need to sigma trim it
-        sig_trim_ref(data_base+str(i)+'.txt')
+        match_trim.sig_trim_ref(data_base+str(i)+'.txt')
         #now can fit distortion using this as the reference
-        t, dx5n, dy5n, sbooln, b2 = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=5, n_iter_fit=1, lookup=False)
+        tn, dxn, dyn, sbooln, bn = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=False)
 
         #save tranform objects in case I want them later
         f= open(run_base+str(i)+'.trans', 'w')
         pickle.dump(t, f)
+        iter_plots(dx, dy, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
+        
 
         #now we have a new distortion solution, so we return to step 1
 
+
+def iter_plots(t, dx, dy, pos_txt, pref):
+    #first want quiver plot of the residuals wrt data
+    tab = Table.read(pos_txt, format='ascii.fixed_width')
+    plt.figure(1)
+    plt.clf()
+    match_trim.mk_quiver_resid(tab['x'], tab['y'], dx, dy)
+    plt.savefig(pref+'quiver_resid.png')
+
+    plt.figure(2)
+    plt.hist(dx, bins=100, label='x', alpha=.5)
+    plt.hist(dy, bins=100, label='y', alpha=.5)
+    plt.xlabel('Residual (pixels)')
+    plt.ylabel('N')
+    plt.savefig(pref+'hist_resid.png')
+    

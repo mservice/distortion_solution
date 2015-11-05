@@ -244,7 +244,7 @@ def mk_reference_spline(lis_files, fits_files,  hst_tab_ref, tx, ty, outfile='Ns
     mag = np.array(mag)
     
     #now write final reference in fits and ascii form
-    tabout = Table(data=[name, x, xerr, y, yerr, mag, N])
+    tabout = Table(data=[name, x, xerr, y, yerr, mag, N], names=['Name', 'Xarc','xerr',  'Yarc', 'yerr', 'Mag', 'N'])
     tabout.write(outfile, format='ascii.fixed_width')
     #tabout.write('NIRC2_reference.fits', format='fits')
     
@@ -300,7 +300,7 @@ def mk_reference_leg(lis_files,  dar_lis, hst_tab_ref, t, outfile_pre='NIRC2_leg
     mag = np.array(mag)
     
     #now write final reference in fits and ascii form
-    tabout = Table(data=[name, x, xerr, y, yerr, mag, N])
+    tabout = Table(data=[name, x, xerr, y, yerr, mag, N], names=['Name', 'Xarc','xerr',  'Yarc', 'yerr', 'Mag', 'N'] )
     tabout.write(outfile_pre+'.txt', format='ascii.fixed_width')
     #tabout.write(outfile_pre+'.fits', format='fits')
 
@@ -878,9 +878,10 @@ def applyDAR_coo(fits, x_h, y_h):
     The output file has the name <fitsFile>_acs.lis and is saved to the
     current directory.
 
-    Added funcionallity from nirc2.util.dar dunction:
-    orient ang assumes an orientation of the input HST starlist
-    hst_pix_scale simply converts the hst input ref values to arcseconds
+    Added funcionallity from nirc2.util.dar function:
+    now takes two vectors of HST star positions instead of a catalog
+    returns 2 vectors of psotiison (x, y) 
+    
     """
     
     # Get header info
@@ -925,22 +926,6 @@ def applyDAR_coo(fits, x_h, y_h):
     # this image. The angle we need is simply the parallactic
     # (or vertical) angle since ACS images are North Up already.
     pa = math.radians(parang)
-
-    ##########
-    #
-    # Read in the starlist
-    #
-    ##########
-    #_list = Table.read(spaceStarlist, format='ascii')
-    #cols = _list.columns.keys()
-    #names = [_list[ss][0].strip() for ss in range(len(_list))]
-    #mag = _list[cols[1]]
-    #date = _list[cols[2]]
-    #x = _list[cols[3]] # RA in arcsec
-    #y = _list[cols[4]]
-    #xe = _list[cols[5]]
-    #ye = _list[cols[6]]
-   
     
     x = x_h
     y = y_h
@@ -948,6 +933,8 @@ def applyDAR_coo(fits, x_h, y_h):
     # the first star. Even though dR depends on dzObs (ground observed dz),
     # it is a small mistake and results in less than a 10 micro-arcsec
     # change in dR.
+
+    #MS: not sure why we are subtracting the first star in the list
     dx = x - x[0]
     dy = y - y[0]
 
