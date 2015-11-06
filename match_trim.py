@@ -196,7 +196,7 @@ def match2hst_err_ret_hst(lis_f,fits_file ,hst,tx, ty, ecut=.001, spline=False):
 def mk_reference_spline(lis_files, fits_files,  hst_tab_ref, tx, ty, outfile='Nspline_ref.txt'):
     '''
     generates a new refrence list that combines all of the input stars.
-    this allows a solution based soley on NIRC2 data  to be computed
+    this allows a solution based on NIRC2 data  to be computed
     '''
     
     xdict = {}
@@ -251,7 +251,7 @@ def mk_reference_spline(lis_files, fits_files,  hst_tab_ref, tx, ty, outfile='Ns
 def mk_reference_leg(lis_files,  dar_lis, hst_tab_ref, t, outfile_pre='NIRC2_leg_reference'):
     '''
     generates a new refrence list that combines all of the input stars.
-    this allows a solution based soley on NIRC2 data  to be computed
+    this allows a solution based on NIRC2 data  to be computed
     '''
     
     xdict = {}
@@ -311,6 +311,8 @@ def mk_reference_leg(lis_files,  dar_lis, hst_tab_ref, t, outfile_pre='NIRC2_leg
 
 def precision_stack(lis_files, hst_tab_ref, hst_tab_red, n_iter=3, order=3, plot_hist=False, pix_range=4, long_in_set=None, tab_format='fits'):
     '''
+    Primary purpose of this code is to stack NIRC2 catalogs taken at the same position, and write the stacked catalogs.
+    
     go through all the starfinder , match into hst, find the deltas in the keck frame
     keep track of names of stars
     Need to clculate precisions, which requires stacking positions from epochs that are very close to each other on the sky
@@ -533,6 +535,9 @@ def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_d
 
 def leg2lookup(t, plot=False):
 
+    '''
+    samples legendre tranformation at each pixel and returns the resulting array
+    '''
     xrange = np.linspace(0,1023,num=1024)
     yrange = xrange
     outx = np.zeros((len(xrange),len(yrange)))
@@ -563,6 +568,9 @@ def leg2lookup(t, plot=False):
 
 
 def search_for_mat(hst,stf,fac=1, num=50):
+    '''
+    seacrhes for a match in 10" boxes across the entire HST catalog
+    '''
     hst_pix = .05 # arcseconds/pixel
     fov = 10 / hst_pix * fac
     bins_x = int((np.max(hst['Xarc'])-np.min(hst['Xarc']))/fov)
@@ -583,6 +591,9 @@ def search_for_mat(hst,stf,fac=1, num=50):
 
 
 def spline2lookup(splinex,spliney):
+    '''
+    samples a spline tranformation at each pixels and returns the resulting array
+    '''
     xrange = np.linspace(0,1023,num=1024)
     #import pdb;pdb.set_trace()
     yrange = xrange
@@ -614,6 +625,13 @@ def mk_quiver(x,y,dx,dy, title_s='April', scale=50):
 
 
 def sig_trim(x,xerr,y,yerr,xref,xreferr,yref,yreferr,names,mag, sig_fac=3 , num_section=9):
+    '''
+    Performs spatial sigma trimming of the Deltas between catalog and reference
+    sig_fac is the number of sigma clipped
+    num_Sectio nis the number of sections that each axis is split into, for example num_section=9 means that a 9x9 grid is used
+    other arguements are 1-d array-like
+    '''
+    
     dx = xref - x
     dy = yref - y
 
@@ -652,7 +670,7 @@ def sig_trim(x,xerr,y,yerr,xref,xreferr,yref,yreferr,names,mag, sig_fac=3 , num_
                 
 
 
-    print 'umber of stars cliiped ', len(x) - len(xout)
+    print 'number of stars cliiped ', len(x) - len(xout)
     return  np.array(xout),np.array(xeout) ,np.array(yout), np.array(yeout), np.array(xrout), np.array(xreout), np.array(yrout), np.array(yreout), np.array(nout) , np.array(mout)
     
 
@@ -661,8 +679,8 @@ def sig_trim(x,xerr,y,yerr,xref,xreferr,yref,yreferr,names,mag, sig_fac=3 , num_
 def match_by_name(n1,n2, ret_both=False):
     '''
     returns indexes for n2 that match to n1
-    assumes that all of n1 are in n2
     n1 and n2 should be arrays of strings
+    if ret_both, returns both indexes
     '''
 
     id1 = []
@@ -691,6 +709,7 @@ def match_by_name(n1,n2, ret_both=False):
         return id2
     
 def stack_from_pos(pos_txt, t):
+    
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     xnew , ynew = t.evaluate(tab['x'], tab['y'])
 
@@ -708,7 +727,11 @@ def stack_from_pos(pos_txt, t):
     return xdict, ydict
     
 def match_and_write(outfile='april_pos.txt', fits_lis='first_fits_m.lis'):
-    
+    '''
+    Matches HST adn NIRC2 catalogs
+    applies DAR to HST
+    writes output file with the NIRC2 positions and the HST positions
+    '''
     hst_ref =  Table.read('../../../M53_F814W/F814_pix_err.dat', format='ascii')
     #lis_apr = Table.read('lis.lis', format='ascii.no_header')
     lis_fits = Table.read(fits_lis, format='ascii.no_header')
@@ -722,7 +745,11 @@ def match_and_write(outfile='april_pos.txt', fits_lis='first_fits_m.lis'):
     outtab.write(outfile, format='ascii.fixed_width')
 
 def match_and_write2(reffile='NIRC2_leg_reference.txt',fits_lis='first_fits_m.lis', outfile='april_pos_leg_r2.txt', ap_dar=True):
-    
+    '''
+    MAtches NIRC2 reference and NIRC2 catalog
+    applied DAR to NIRC2 reference
+    writes utput file with the NIRC2 individual positions and the reference positions
+    '''
     hst_ref =  Table.read(reffile, format='ascii.fixed_width')
     #lis_apr = Table.read('lis.lis', format='ascii.no_header')
     lis_fits = Table.read(fits_lis, format='ascii.no_header')
@@ -839,7 +866,7 @@ def mk_quiver_from_txt_dist(t, pos_txt='april_pos.txt', title_s='April Distortio
     plt.title(title_s)
     plt.show()  
 
-def mk_quiver_resid(x,y,dx,dy, scale=50, scale_size=.5, title_s='', color='black'):
+def mk_quiver_resid(x,y,dx,dy, scale=50, scale_size=10, title_s='', color='black'):
 
     #plt.figure(1)
     #plt.clf()
@@ -856,6 +883,7 @@ def mk_quiver_resid(x,y,dx,dy, scale=50, scale_size=.5, title_s='', color='black
 
 def sig_trim_ref(pos_txt):
 
+        #does spatial sigma trimming on a catalog of deltas, then write the sigma clipped version with 'sig_trim' prepended
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     x, xerr, y, yerr, xr, xrerr, yr, yrerr, name, mag = sig_trim(tab['x'], tab['xerr'], tab['y'], tab['yerr'], tab['xr'], tab['xrerr'], tab['yr'], tab['yrerr'], tab['name'], tab['mag'], )
 
@@ -965,6 +993,7 @@ def applyDAR_coo(fits, x_h, y_h):
 
 def plot_err_on_mean(ref_txt, mcut=10, run=1):
 
+        #takes a reference NIRC2 reference file and plots the error on the mean versuse magnitude 
         nref = Table.read(ref_txt, format='ascii.fixed_width')
         plt.figure(1)
         plt.clf()
