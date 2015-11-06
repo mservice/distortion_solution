@@ -591,13 +591,15 @@ def iter_sol_leg(order, iter=5):
     #now fit the distortion, I choose 5th order legendre polynomials
     ref_base = 'Nref_leg'+str(order)
     data_base = 'pos_leg'+str(order)
-    t, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=5, n_iter_fit=1, lookup=False)
+    t, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=order, n_iter_fit=1, lookup=False)
     #make plots
     
     tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
     hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
 
     run_base = 'Nref_leg'+str(order)
+    f= open(run_base+'hst.trans', 'w')
+    pickle.dump(t, f)
     for i in range(iter):
         #first need new reference (using the above distortion solution)
         match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, t, outfile_pre=run_base+str(i))
@@ -611,7 +613,7 @@ def iter_sol_leg(order, iter=5):
         #save tranform objects in case I want them later
         f= open(run_base+str(i)+'.trans', 'w')
         pickle.dump(t, f)
-        iter_plots(dx, dy, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
+        iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
         
 
         #now we have a new distortion solution, so we return to step 1
