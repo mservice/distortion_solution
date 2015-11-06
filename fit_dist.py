@@ -208,7 +208,6 @@ def calc_sig_dist_spline(x, y,xref,yref, n_iter=5, sig_clip=3, plot=False, smoot
 def fit_dist_splineLSQ(pos_txt='april_pos.txt',  n_iter_fit=1, nstring=None, nknots=6,order=3 ,lookup=True, wtype=1):
     '''
     fits distortion with legendre polynomial
-    does spatial sigma clipping before hand
     weights by the errors added in quadrature for each point (both reerence and Nirc2 errors)
     '''
 
@@ -281,7 +280,7 @@ def calc_sig_dist_splineLSQ(x, y,xref,yref, n_iter=5, sig_clip=3, plot=False, nk
 
 def search_smooth_spline(pos_txt='april_pos.txt'):
     '''
-    searches through potential uses of
+    searches through potential smoothing factors, makes plots
     '''
 
     tab = Table.read(pos_txt, format='ascii.fixed_width')
@@ -584,14 +583,14 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
        
 
 def iter_sol_leg(order, iter=5):
-    #assumes intiial
+    #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     initial_data = 'april_pos.txt'
     #spaitally sigma trim the positions
     match_trim.sig_trim_ref(initial_data)
     #now fit the distortion, I choose 5th order legendre polynomials
     ref_base = 'Nref_leg'+str(order)
     data_base = 'pos_leg'+str(order)
-    t, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=order, n_iter_fit=1, lookup=False)
+    tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=order, n_iter_fit=1, lookup=False)
     #make plots
     
     tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
@@ -599,10 +598,10 @@ def iter_sol_leg(order, iter=5):
 
     run_base = 'Nref_leg'+str(order)
     f= open(run_base+'hst.trans', 'w')
-    pickle.dump(t, f)
+    pickle.dump(tn, f)
     for i in range(iter):
         #first need new reference (using the above distortion solution)
-        match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, t, outfile_pre=run_base+str(i))
+        match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, tn, outfile_pre=run_base+str(i))
         #now need new data table, based on the new reference
         match_trim.match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
         #created a new reference, need to sigma trim it
@@ -612,14 +611,14 @@ def iter_sol_leg(order, iter=5):
 
         #save tranform objects in case I want them later
         f= open(run_base+str(i)+'.trans', 'w')
-        pickle.dump(t, f)
+        pickle.dump(tn, f)
         iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
         
 
         #now we have a new distortion solution, so we return to step 1
 
 
-def iter_plots(t, dx, dy, pos_txt, pref):
+def iter_plots( dx, dy, pos_txt, pref):
     #first want quiver plot of the residuals wrt data
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     plt.figure(1)
@@ -628,9 +627,13 @@ def iter_plots(t, dx, dy, pos_txt, pref):
     plt.savefig(pref+'quiver_resid.png')
 
     plt.figure(2)
+    plt.clf()
     plt.hist(dx, bins=100, label='x', alpha=.5)
     plt.hist(dy, bins=100, label='y', alpha=.5)
+    plt.text(1, 300, 'mean, sig x:'+str(np.mean(dx))[:4] + ' '+str(np.std(dx))[:4])
+    plt.text(1,260, 'mean, sig y:'+str(np.mean(dy))[:4]+ ' '+str(np.std(dx))[:4])
     plt.xlabel('Residual (pixels)')
     plt.ylabel('N')
+    plt.legend(loc='upper right')
     plt.savefig(pref+'hist_resid.png')
     
