@@ -192,6 +192,31 @@ def mk_movie(xl, yl,dxl, dyl, mname='diff_stf_dist.mp4', mag=None, scale=5, scal
 
 
 def create_ref_from_lis(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None):
+    """
+    Parameters
+    ----------
+    xrefin : numpy array
+        array of x positions in the reference epoch
+    yrefin : numpy array
+        array of x positions in the reference epoch
+    mrefin : numpy array
+        array of x positions in the reference epoch
+    lis_f : string
+        one column text file containing a list of filenames of the starfinder starlists
+    trans_model : transformation model object (class)
+        The transformation model class that will be instantiated to find the best-fit
+        transformation parameters between each list and the reference list.
+    lis_str : list (optional)
+        list of file names
+    trans_lis : list of transformation model objects (optional)
+        list of transformation model objects (these should have already been
+        instantiated and have transformation parameters defined).
+
+    See Also
+    --------
+    high_order
+    
+    """
 
     if lis_str == None:
         lis_tab = Table.read(lis_f, format='ascii.no_header')
