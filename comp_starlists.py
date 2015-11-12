@@ -259,46 +259,65 @@ def create_ref_from_lis(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_orde
         idx1 , idx2 , dm, dr = align.match(xt,yt ,cat['col2'],  xrm.data, yrm.data, mrm.data, dr_tol)
         print len(idx1)
 
-        #now create new reference
-        xrefn = np.zeros((len(xrm)+len(xt)-len(idx1),i+2)) - 100000
-        yrefn = np.zeros((len(xrm)+len(xt)-len(idx1),i+2)) - 100000
-        mrefn = np.zeros((len(xrm)+len(xt)-len(idx1),i+2)) - 100000
+        # Update the total number of stars.
+        #    Remember that xrm is modified in each loop.
+        #    New stars are added to xrm as they are found in each successive list.
+        #    idx1 - the matches between xrm and the current list.
+        # Nnew = len(xrm) + all new sources not yet in the reference list
+        Nnew = len(xrm) + len(xt) - len(idx1)
 
+        # Initiale to a junk value (will be used for masking later).
+        xrefn = np.zeros(Nnew) - 100000
+        yrefn = np.zeros(Nnew) - 100000
+        mrefn = np.zeros(Nnew) - 100000
+
+        # The index of the first new star to be added.
         in_mid = len(xrm)
-        #keep all of the old data
+        
+        # Keep all of the old data (already in the reference list).
+        # This is a 2D array with the first column is the reference epoch measurement.
+        # All subsequent columns (up to in_mid) are the measurements in the lists
+        # we have already processed.
         xrefn[:in_mid,:-1] = xref[:]
         yrefn[:in_mid,:-1] = yref[:]
         mrefn[:in_mid,:-1] = mref[:]
 
-        #put in the new matched stars
+        # Put in the new matched stars for this list.
         xrefn[:in_mid,-1][idx2] = xt[idx1]
         yrefn[:in_mid,-1][idx2] = yt[idx1]
         mrefn[:in_mid,-1][idx2] = cat['col2'][idx1]
+
+        # Identify everything that are in the current list; but don't exist in the reference.
+        # Remember this reference is changing every iteration. So this effectively means
+        # we haven't found this star in the reference or in any previous list. Totally new star.
         cbool = np.ones(len(xt), dtype='bool')
         cbool[idx1] = False
 
-        #now need to add positions of previously unmatched stars
+        # Now need to add positions of previously unidentified stars. Add this to the lower
+        # right-hand section of the array.
         instart = len(xrm)
         xrefn[in_mid:,-1] = xt[cbool]
         yrefn[in_mid:,-1] = yt[cbool]
         mrefn[in_mid:,-1] = cat['col2'][cbool]
 
-        #finally create masked arrays then calulate new means for next round of alignment
+        # Finally create masked arrays then calulate new means for next round of alignment
         mask = xrefn < -99999
         xrefn = np.ma.masked_less(xrefn, -99999)
         yrefn = np.ma.masked_less(yrefn, -99999)
         mrefn = np.ma.masked_less(mrefn, -99999)
 
-        
+        # Calculate the mean. Note we know this inappropriately includes the reference epoch.
+        # But we need this to preserve stars only found in the reference epoch for now.
+        # This will be re-calculated before we return anything.
         xrm = np.mean(xrefn, axis=1)
         yrm = np.mean(yrefn, axis=1)
         mrm = np.mean(mrefn, axis=1)
 
         #import pdb; pdb.set_trace()
+        # Update xref, yref, mref (our big 2D arrays) with the new list added and new stars added.
         xref = xrefn[:]
         yref = yrefn[:]
         mref = mrefn[:]
-
 
 
     return xrefn, yrefn, mrefn, np.mean(xrefn[:,1:],axis=1) , np.mean(yrefn[:,1:],axis=1), np.mean(mrefn[:,1:],axis=1), np.std(xrefn[:,1:], axis=1), np.std(yrefn[:,1:], axis=1), np.std(mrefn[:,1:], axis=1), np.sum(xrefn.mask, axis=1)
