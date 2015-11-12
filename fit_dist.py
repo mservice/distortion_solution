@@ -323,7 +323,7 @@ def find_best_fit_spline(yeldax, yelday , pos_txt='sig_trimapril_pos.txt', wtype
     '''
 
     #num_knots = range(2,10)
-    num_knots = np.linspace(600,1100, num=20)
+    num_knots = np.linspace(300,1200, num=20)
     #order_poly = 3
 
     tab = Table.read(pos_txt, format='ascii.fixed_width')
@@ -350,24 +350,30 @@ def find_best_fit_spline(yeldax, yelday , pos_txt='sig_trimapril_pos.txt', wtype
         #import pdb; pdb.set_trace()
 
 
-        plot_dist( yeldax,outx, title2='Spline X Nknots:'+str(i)[:5], title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='Dist_sol_splineX_'+str(i)[:5]+'.png')
-        plot_dist( yelday,outy, title2='Spline Y Nknots:'+str(i)[:5], title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='Dist_sol_splineY_'+str(i)[:5]+'.png')
+        match_trim.plot_dist( yeldax,outx, title2='Spline X Nknots:'+str(i)[:5], title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='Dist_sol_splineX_'+str(i)[:5]+'.png')
+        match_trim.plot_dist( yelday,outy, title2='Spline Y Nknots:'+str(i)[:5], title1='Yelda', title3='Difference', title4='Difference', vmind=-.5, vmaxd=.5, outfile='Dist_sol_splineY_'+str(i)[:5]+'.png')
+
+        plt.figure(5)
+        plt.clf()
+        match_trim.plot_lookup_diff(yeldax, yelday, outx, outy)
+        plt.savefig('HST_fit_spline_smooth'+str(i)+'diff_yelda.png')
+        iter_plots(dx, dy, pos_txt,'HST_fit_spline_smooth'+str(i))
             
-        fit_p  = fitting.LevMarLSQFitter()
+        #fit_p  = fitting.LevMarLSQFitter()
         
-        gy = models.Gaussian1D(mean=0, stddev=1.0)
-        gy.mean.fixed =True
+        #gy = models.Gaussian1D(mean=0, stddev=1.0)
+        #gy.mean.fixed =True
         #gy.stddev.fixed = True
 
-        gx = models.Gaussian1D(mean=0, stddev=1.0)
-        gx.mean.fixed =True
+        #gx = models.Gaussian1D(mean=0, stddev=1.0)
+        #gx.mean.fixed =True
         #gx.stddev.fixed = True
 
-        mx = fit_p(gx , bcenx, xN)
-        my = fit_p(gy , bceny , yN)
+        #mx = fit_p(gx , bcenx, xN)
+        #my = fit_p(gy , bceny , yN)
 
-        chix = np.sum((mx(bcenx) - xN)**2/ mx(bcenx))
-        chiy = np.sum((my(bceny) - yN)**2/ my(bceny))
+        #chix = np.sum((mx(bcenx) - xN)**2/ mx(bcenx))
+        #chiy = np.sum((my(bceny) - yN)**2/ my(bceny))
 
         plt.figure(3)
         plt.clf()
@@ -381,36 +387,31 @@ def find_best_fit_spline(yeldax, yelday , pos_txt='sig_trimapril_pos.txt', wtype
         plt.ylabel('N')
         plt.savefig('hist_diff_from_yelda'+str(i)[:5]+'.png')
 
-        plt.figure(4)
-        plt.clf()
-        plot_lookup_diff(outx, outy, yeldax, yelday)
-        plt.title('Difference Legendre and Yelda')
-        plt.savefig('Spline'+str(i)[:5]+'_resid_yelda.png')
 
-        plt.figure(1)
-        plt.clf()
-        plt.scatter(bcenx, xN)
-        plt.plot(bcenx, mx(bcenx))
-        plt.text(np.min(bcenx)+1, np.max(xN)/2.0, r'$\chi^{2}$: '+str(chix)[:5])
-        plt.text(np.min(bcenx)+1, np.max(xN)/2.0-25, r'$\sigma$:'+str(mx.stddev.value)[:6])
-        plt.text(np.min(bcenx)+1, np.max(xN)/2.0-50,'S: '+str(i))
-        plt.title('X residual Nknots'+str(i)[:5])
-        plt.xlabel('residual / error')
-        plt.ylabel('N')
-        plt.savefig('Spline_x_resid_ord'+str(i)[:5]+'.png')
+        #plt.figure(1)
+        #plt.clf()
+        #plt.scatter(bcenx, xN)
+        #plt.plot(bcenx, mx(bcenx))
+        #plt.text(np.min(bcenx)+1, np.max(xN)/2.0, r'$\chi^{2}$: '+str(chix)[:5])
+        #plt.text(np.min(bcenx)+1, np.max(xN)/2.0-25, r'$\sigma$:'+str(mx.stddev.value)[:6])
+        #plt.text(np.min(bcenx)+1, np.max(xN)/2.0-50,'S: '+str(i))
+        #plt.title('X residual Nknots'+str(i)[:5])
+        #plt.xlabel('residual / error')
+        #plt.ylabel('N')
+        #plt.savefig('Spline_x_resid_ord'+str(i)[:5]+'.png')
 
-        plt.figure(2)
-        plt.clf()
+        #plt.figure(2)
+        #plt.clf()
         #plt.hist(dyn, bins=100)
-        plt.scatter(bceny, yN)
-        plt.plot(bceny, my(bceny))
-        plt.text(np.min(bceny)+1, np.max(yN)/2.0, r'$\chi^{2}$: '+str(chiy)[:5])
-        plt.text(np.min(bceny)+1, np.max(yN)/2.0-25, r'$\sigma$:'+str(my.stddev.value)[:6])
-        plt.text(np.min(bceny)+1, np.max(yN)/2.0-50,'S: '+str(i))
-        plt.title('Y residual S:'+str(i)[:5])
-        plt.xlabel('residual / error')
-        plt.ylabel('N')
-        plt.savefig('Spline_y_resid_ord'+str(i)[:5]+'.png')
+        #plt.scatter(bceny, yN)
+        #plt.plot(bceny, my(bceny))
+        #plt.text(np.min(bceny)+1, np.max(yN)/2.0, r'$\chi^{2}$: '+str(chiy)[:5])
+        #plt.text(np.min(bceny)+1, np.max(yN)/2.0-25, r'$\sigma$:'+str(my.stddev.value)[:6])
+        #plt.text(np.min(bceny)+1, np.max(yN)/2.0-50,'S: '+str(i))
+        #plt.title('Y residual S:'+str(i)[:5])
+        #plt.xlabel('residual / error')
+        #plt.ylabel('N')
+        #plt.savefig('Spline_y_resid_ord'+str(i)[:5]+'.png')
         #plt.show()
         
         
@@ -582,9 +583,9 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
         plt.savefig('yelda_plots/Leg_y_resid_ord'+str(i)+'.png')
        
 
-def iter_sol_leg(order, iter=5):
+def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt'):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
-    initial_data = 'april_pos.txt'
+    
     #spaitally sigma trim the positions
     match_trim.sig_trim_ref(initial_data)
     #now fit the distortion, I choose 5th order legendre polynomials
@@ -596,6 +597,7 @@ def iter_sol_leg(order, iter=5):
     tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
     hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
 
+    #import pdb;pdb.set_trace()
     run_base = 'Nref_leg'+str(order)
     f= open(run_base+'hst.trans', 'w')
     pickle.dump(tn, f)
@@ -607,7 +609,18 @@ def iter_sol_leg(order, iter=5):
         #created a new reference, need to sigma trim it
         match_trim.sig_trim_ref(data_base+str(i)+'.txt')
         #now can fit distortion using this as the reference
-        tn, dxn, dyn, sbooln, bn = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=False)
+        tn,lookupx, lookupy,  dxn, dyn, sbooln = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=True)
+        if i !=0:
+            plt.figure(5)
+            plt.clf()
+            match_trim.plot_lookup_diff(lookup_x_prev, lookup_y_prev, lookupx, lookupy)
+            plt.savefig(run_base+'iter_'+str(i)+'diff_sequence.png')
+        np.save(open(run_base+'iter_'+str(i)+'lookupx.npy', 'w'),lookupx)
+        np.save(open(run_base+'iter_'+str(i)+'lookupy.npy', 'w'),lookupy)
+        
+        lookup_x_prev = lookupx.copy()
+        lookup_y_prev = lookupy.copy()
+            
 
         #save tranform objects in case I want them later
         f= open(run_base+str(i)+'.trans', 'w')
@@ -623,15 +636,15 @@ def iter_plots( dx, dy, pos_txt, pref):
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     plt.figure(1)
     plt.clf()
-    match_trim.mk_quiver_resid(tab['x'], tab['y'], dx, dy)
+    match_trim.mk_quiver_resid(tab['x'], tab['y'], dx, dy, title_s=pref)
     plt.savefig(pref+'quiver_resid.png')
 
     plt.figure(2)
     plt.clf()
     plt.hist(dx, bins=100, label='x', alpha=.5)
     plt.hist(dy, bins=100, label='y', alpha=.5)
-    plt.text(1, 300, 'mean, sig x:'+str(np.mean(dx))[:4] + ' '+str(np.std(dx))[:4])
-    plt.text(1,260, 'mean, sig y:'+str(np.mean(dy))[:4]+ ' '+str(np.std(dx))[:4])
+    plt.text(-.75, 125, 'mean, sig x:'+str(np.mean(dx))[:6] + ' '+str(np.std(dx))[:6])
+    plt.text(-.75,100, 'mean, sig y:'+str(np.mean(dy))[:6]+ ' '+str(np.std(dy))[:6])
     plt.xlabel('Residual (pixels)')
     plt.ylabel('N')
     plt.legend(loc='upper right')

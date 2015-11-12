@@ -14,6 +14,7 @@ import datetime
 from nirc2.reduce.dar import *
 from jlu.util import statsIter
 import pickle
+from astropy.io import fits 
 
 def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     '''
@@ -44,10 +45,10 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(stf['col4'], stf['col5'], stf['col2'], hst['Xarc'][hst_bool], hst['Yarc'][hst_bool], hst['Mag'][hst_bool], 60)
     if N < 5:
         looked_twice=True
-        N, x1m, y1m, m1m, x2m, y2m, m2m = search_for_mat(hst,stf)
+        N, x1m, y1m, m1m, x2m, y2m, m2m = search_for_mat(hst,stf, num=60)
         
         if N == None:
-            N, x1m, y1m, m1m, x2m, y2m, m2m = search_for_mat(hst,stf,fac=2)
+            N, x1m, y1m, m1m, x2m, y2m, m2m = search_for_mat(hst,stf,fac=2,num=60)
     
     dm = np.average(m1m-m2m)
     
@@ -81,7 +82,7 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     return   stf['col4'][idx1], stf['col5'][idx1], xnew[idx2], ynew[idx2], hst['Name'][idx2], np.ones(len(hst), dtype='bool'), idx2, stf['col2'][idx1], hst['Mag'][idx2], hst['xerr'][idx2], hst['yerr'][idx2]
 
 
-def match2hst_err(lis_f, ref, fits_file, ecut=.002, ref_scale=1.0,ap_dar=True, ):
+def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True ):
     '''
     lis_f is the name of the fits table containing the Nirc2 coordiantes form a single pointing
     ref is the "distortion free" reference (either Nirc2 or HST)
@@ -129,7 +130,7 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.002, ref_scale=1.0,ap_dar=True, )
     return   stf['col1'][idx1], stf['col3'][idx1], xnew[idx2], ynew[idx2], ref['Name'][idx2], stf['col5'][idx1], ref['Mag'][idx2], (ref['xerr'][idx2]*ref_scale)/stf_pix_scale, (ref['yerr'][idx2]*ref_scale)/stf_pix_scale, stf['col2'][idx1], stf['col4'][idx1]
 
 
-def match2hst_err_ret_hst(lis_f,fits_file ,hst,tx, ty, ecut=.001, spline=False):
+def match2hst_err_ret_hst(lis_f,fits_file ,hst,tx, ty, ecut=.01, spline=False):
     '''
     matches the lis_f is the stacked measurements from frames at a single pointing
     matches stars by name to the HST reference
@@ -309,19 +310,14 @@ def mk_reference_leg(lis_files,  dar_lis, hst_tab_ref, t, outfile_pre='NIRC2_leg
 
 
 
-def precision_stack(lis_files, hst_tab_ref, hst_tab_red, n_iter=3, order=3, plot_hist=False, pix_range=4, long_in_set=None, tab_format='fits'):
+def precision_stack(lis_files, hst_tab_ref, hst_tab_red,  order=3, plot_hist=False, pix_range=4, long_in_set=None, tab_format='fits', ap_dar=True):
     '''
     Primary purpose of this code is to stack NIRC2 catalogs taken at the same position, and write the stacked catalogs.
     
-    go through all the starfinder , match into hst, find the deltas in the keck frame
-    keep track of names of stars
-    Need to clculate precisions, which requires stacking positions from epochs that are very close to each other on the sky
-    TO do this, first try I will just match all frames to the longest list
-    THen find all frames that have >20 matches ( from triangle), and also have average dr < pix_range pixels
-    Then stack the matched stars.
-    THen find precision, also make plots of M vs. error, whci means that the I need to hold onto the magnitudes and match them to each other
-    Note, errors are retunrned in units of arcseconds!!!!!
-    
+    go through all the starfinder , match into hst
+    Then keep only stars with a match for stacking in the Nirc2 frames
+    THen find all frames that have >20 matches ( from triangle), and also have average dr < pix_range pixels and combine them
+       
     '''
 
     xstf = []
@@ -337,28 +333,28 @@ def precision_stack(lis_files, hst_tab_ref, hst_tab_red, n_iter=3, order=3, plot
     long_length=0
     lis_used = []
     
-    for n in range(n_iter):
-        xstf = []
-        ystf = []
-        xref = []
-        yref = []
-        hxerr = []
-        hyerr = []
-        for i, lis_i in enumerate(lis_files):
-            x,y,xr,yr,name, hst_bool, m_idx, mag,hst_mag,  hst_xerr, hst_yerr = match2hst(lis_i, hst_tab_ref, hst_tab_red)
+    
+    xstf = []
+    ystf = []
+    xref = []
+    yref = []
+    hxerr = []
+    hyerr = []
+    for i, lis_i in enumerate(lis_files):
+        x,y,xr,yr,name, hst_bool, m_idx, mag,hst_mag,  hst_xerr, hst_yerr = match2hst(lis_i, hst_tab_ref, hst_tab_red, ap_dar=ap_dar)
 
-            if len(x) > 5:
-                xstf.append(x)
-                ystf.append(y)
-                xref.append(hst_tab_red['Xarc'][hst_bool][m_idx])
-                yref.append(hst_tab_red['Yarc'][hst_bool][m_idx])
-                hxerr.append(hst_xerr)
-                hyerr.append(hst_yerr)
-                mstf.append(mag)
-                nstf.append(name)
-                lis_used.append(lis_i)
-                if len(x)>long_length:
-                    long_in=i
+        if len(x) > 5:
+            xstf.append(x)
+            ystf.append(y)
+            xref.append(hst_tab_red['Xarc'][hst_bool][m_idx])
+            yref.append(hst_tab_red['Yarc'][hst_bool][m_idx])
+            hxerr.append(hst_xerr)
+            hyerr.append(hst_yerr)
+            mstf.append(mag)
+            nstf.append(name)
+            lis_used.append(lis_i)
+            if len(x)>long_length:
+                long_in=i
 
 
     #we have a reference now, need to match into it
@@ -533,12 +529,17 @@ def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_d
     
     return np.array(xstf),np.array(xerr), np.array(ystf),np.array(yerr), np.array(xref),np.array(hxerr), np.array(yref),np.array(hyerr), t ,hmag, nam_out, frame_num, frame_name
 
-def leg2lookup(t, plot=False):
+def leg2lookup(t, plot=False, sample_center=True):
 
     '''
     samples legendre tranformation at each pixel and returns the resulting array
     '''
-    xrange = np.linspace(0,1023,num=1024)
+
+    if sample_center:
+        xrange = np.linspace(.5, 1023.5, num=1024)
+    else:
+        xrange = np.linspace(0,1023,num=1024)
+        
     yrange = xrange
     outx = np.zeros((len(xrange),len(yrange)))
     outy = np.zeros((len(xrange),len(yrange)))
@@ -590,11 +591,14 @@ def search_for_mat(hst,stf,fac=1, num=50):
 
 
 
-def spline2lookup(splinex,spliney):
+def spline2lookup(splinex,spliney, sample_center=True):
     '''
     samples a spline tranformation at each pixels and returns the resulting array
     '''
-    xrange = np.linspace(0,1023,num=1024)
+    if sample_center:
+        xrange = np.linspace(.5, 1023.5, num=1024)
+    else:
+        xrange = np.linspace(0,1023,num=1024)
     #import pdb;pdb.set_trace()
     yrange = xrange
     outx = np.zeros((len(xrange),len(yrange)))
@@ -726,20 +730,20 @@ def stack_from_pos(pos_txt, t):
 
     return xdict, ydict
     
-def match_and_write(outfile='april_pos.txt', fits_lis='first_fits_m.lis'):
+def match_and_write(outfile='april_pos.txt', fits_lis='first_fits_m.lis', ap_dar=True):
     '''
     Matches HST adn NIRC2 catalogs
     applies DAR to HST
     writes output file with the NIRC2 positions and the HST positions
     '''
-    hst_ref =  Table.read('../../../M53_F814W/F814_pix_err.dat', format='ascii')
+    hst_ref =  Table.read('/Users/service/M53_F814W/F814_pix_err.dat', format='ascii')
     #lis_apr = Table.read('lis.lis', format='ascii.no_header')
     lis_fits = Table.read(fits_lis, format='ascii.no_header')
     #DAR_fits = Table.read(fits_lis, format='ascii.no_header')
 
     #angle is orientation of the HST frame, from header in this data (M53) is -102.5 degrees
 
-    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name,frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref, lis_fits['col1'], .05, ap_dar=True)
+    x,xerr,y,yerr,xref,xreferr,yref,yreferr,t,hmag, name,frame_num, frame_name = collate_pos(lis_fits['col2'], hst_ref, lis_fits['col1'], .05, ap_dar=ap_dar)
     outtab = Table(data=[name, hmag, x, xerr, y, yerr, xref , xreferr, yref , yreferr, frame_num, frame_name], names=['name','mag', 'x', 'xerr', 'y', 'yerr', 'xr', 'xrerr', 'yr', 'yrerr', 'frame_num', 'frame_name'])
 
     outtab.write(outfile, format='ascii.fixed_width')
@@ -808,8 +812,8 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24):
             dy[i,j] = l1y[indices[i],indices[j]] - l2y[indices[i],indices[j]]
     
     coos = np.meshgrid(indices, indices)
-    q = plt.quiver(coos[0], coos[1], dx, dy, scale = 10)
-    qk = plt.quiverkey(q,1050, 1050, .5 , '.5 pixel', coordinates='data', color='red')
+    q = plt.quiver(coos[0], coos[1], dx, dy, scale = 1)
+    qk = plt.quiverkey(q,1050, 1050, .05 , '0.05 pixel', coordinates='data', color='red')
     
 def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
     #plt.figure(10)
@@ -866,7 +870,7 @@ def mk_quiver_from_txt_dist(t, pos_txt='april_pos.txt', title_s='April Distortio
     plt.title(title_s)
     plt.show()  
 
-def mk_quiver_resid(x,y,dx,dy, scale=50, scale_size=10, title_s='', color='black'):
+def mk_quiver_resid(x,y,dx,dy, scale=10, scale_size=1, title_s='', color='black'):
 
     #plt.figure(1)
     #plt.clf()
@@ -995,21 +999,21 @@ def plot_err_on_mean(ref_txt, mcut=10, run=1):
 
         #takes a reference NIRC2 reference file and plots the error on the mean versuse magnitude 
         nref = Table.read(ref_txt, format='ascii.fixed_width')
-        plt.figure(1)
+        #plt.figure(1)
         plt.clf()
-        eX =  nref['col2']/np.sqrt(nref['col6'])
-        eY =  nref['col4']/np.sqrt(nref['col6'])
+        eX =  nref['xerr']/np.sqrt(nref['N'])
+        eY =  nref['yerr']/np.sqrt(nref['N'])
 
-        mbool = nref['col5'] < mcut   
-        plt.semilogy(nref['col5'], eX, 'o', label='x')
-        plt.semilogy(nref['col5'], eY, 'o', label='y')
+        mbool = nref['Mag'] < mcut   
+        plt.semilogy(nref['Mag'], eX, 'o', label='x')
+        plt.semilogy(nref['Mag'], eY, 'o', label='y')
         plt.legend(loc='upper right')
         plt.title('Error on Mean of Stack Pass '+str(run))
-        plt.text(np.min(nref['col5'])+.5, 10**-2, 'mean errorX:'+str(np.mean(eX[mbool])))
-        plt.text(np.min(nref['col5'])+.5, 5*10**-2, 'mean errorY:'+str(np.mean(eY[mbool])))
+        plt.text(np.min(nref['Mag'])+.5, 10**-3, 'mean error X:'+str(np.mean(eX[mbool])*10**3)+' mas')
+        plt.text(np.min(nref['Mag'])+.5, 5*10**-3, 'mean error Y:'+str(np.mean(eY[mbool])*10**3)+' mas')
         plt.axvline(mcut)
         plt.xlabel('Mag')
-        plt.ylabel('Error (arcseconds')
+        plt.ylabel('Error (arcseconds)')
 
 
 
@@ -1021,3 +1025,11 @@ def writefits2txt(lis_txt):
 
 
 
+
+
+def lookup2fits(lx, ly, namex='dist_look_X.fits', namey='dist_look_Y.fits'):
+    hdux = fits.PrimaryHDU(lx)
+    hduy = fits.PrimaryHDU(ly)
+
+    hdux.writeto(namex, clobber='True')
+    hduy.writeto(namey, clobber='True')
