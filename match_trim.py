@@ -798,7 +798,7 @@ def plot_dist(out1, out2, title1='Legendre', title2='Spline', title3='Difference
     if show:
         plt.show()
 
-def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24):
+def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     #plt.figure(10)
     plt.clf()
     indices = range(0,1024,spacing)
@@ -812,8 +812,8 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24):
             dy[i,j] = l1y[indices[i],indices[j]] - l2y[indices[i],indices[j]]
     
     coos = np.meshgrid(indices, indices)
-    q = plt.quiver(coos[0], coos[1], dx, dy, scale = 1)
-    qk = plt.quiverkey(q,1050, 1050, .05 , '0.05 pixel', coordinates='data', color='red')
+    q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
+    qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixel', coordinates='data', color='red')
     
 def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
     #plt.figure(10)
