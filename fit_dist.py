@@ -539,19 +539,21 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
         plt.savefig('yelda_plots/Leg_y_resid_ord'+str(i)+'.png')
        
 
-def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app=''):
+def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
     #spaitally sigma trim the positions
     match_trim.sig_trim_ref(initial_data)
-    #now fit the distortion, I choose 5th order legendre polynomials
+    #now fit the distortion
     ref_base = 'Nref_leg'+str(order)
     data_base = 'pos_leg'+str(order)
+
+    #for bootstrap, need to split the data in half, write new file, run everythin from that base
     tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+initial_data,order=order, n_iter_fit=1, lookup=False)
-    #make plots
+    
     
     tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
-    hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
+    hst = Table.read(hst_file, format='ascii')
 
     #import pdb;pdb.set_trace()
     run_base = pref_app+'Nref_leg'+str(order)
@@ -565,12 +567,13 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app=''):
         #created a new reference, need to sigma trim it
         match_trim.sig_trim_ref(data_base+str(i)+'.txt')
         #now can fit distortion using this as the reference
-        tn,lookupx, lookupy,  dxn, dyn, sbooln = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=True, wtype=2)
-        if i !=0:
-            plt.figure(5)
-            plt.clf()
-            match_trim.plot_lookup_diff(lookup_x_prev, lookup_y_prev, lookupx, lookupy)
-            plt.savefig(run_base+'iter_'+str(i)+'diff_sequence.png')
+        tn,lookupx, lookupy,  dxn, dyn, sbooln = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=True, wtype=1)
+        if plot:
+            if i !=0:
+                plt.figure(5)
+                plt.clf()
+                match_trim.plot_lookup_diff(lookup_x_prev, lookup_y_prev, lookupx, lookupy)
+                plt.savefig(run_base+'iter_'+str(i)+'diff_sequence.png')
         np.save(open(run_base+'iter_'+str(i)+'lookupx.npy', 'w'),lookupx)
         np.save(open(run_base+'iter_'+str(i)+'lookupy.npy', 'w'),lookupy)
         
@@ -581,11 +584,66 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app=''):
         #save tranform objects in case I want them later
         f= open(run_base+str(i)+'.trans', 'w')
         pickle.dump(tn, f)
-        iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
+        if plot:
+            iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
         
 
         #now we have a new distortion solution, so we return to step 1
 
+
+def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100):
+    #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
+    
+    #spaitally sigma trim the positions
+    match_trim.sig_trim_ref(initial_data)
+    #now fit the distortion
+    ref_base = 'Nref_leg'+str(order)
+    data_base = 'pos_leg'+str(order)
+
+    #for bootstrap, need to split the data in half, write new file, run everything from that base
+   
+    for bb in range(bot_trials):
+
+        dum_tab = Table.read('sig_trim'+initial_data, format='ascii.fixed_width')
+        newtab =dum_tab[np.random.rand(len(dum_tab))]
+        newtab.write('sig_trim_'+str(bb)+initial_data, format='ascii.fixed_width')
+        tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim_'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
+    
+    
+        tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
+        hst = Table.read(hst_file, format='ascii')
+
+        #import pdb;pdb.set_trace()
+        run_base = pref_app+'Nref_leg'+str(order)
+        f= open(run_base+'hst.trans', 'w')
+        pickle.dump(tn, f)
+        for i in range(iter):
+            #first need new reference (using the above distortion solution)
+            match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, tn, outfile_pre=run_base+str(i))
+            #now need new data table, based on the new reference
+            match_trim.match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
+            #created a new reference, need to sigma trim it
+            match_trim.sig_trim_ref(data_base+str(i)+'.txt')
+            #now can fit distortion using this as the reference
+            tn,  dxn, dyn, sbooln, b2 = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=False, wtype=1)
+            if plot:
+                if i !=0:
+                    plt.figure(5)
+                    plt.clf()
+                    match_trim.plot_lookup_diff(lookup_x_prev, lookup_y_prev, lookupx, lookupy)
+                    plt.savefig(run_base+'iter_'+str(i)+'diff_sequence.png')
+            np.save(open(run_base+'iter_'+str(i)+'lookupx.npy', 'w'),lookupx)
+            np.save(open(run_base+'iter_'+str(i)+'lookupy.npy', 'w'),lookupy)
+            
+            
+
+        #save tranform objects in case I want them later
+            f= open(run_base+str(i)+'.trans', 'w')
+            pickle.dump(tn, f)
+            if plot:
+                iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
+                
+        f= open(run_base+str(i)+'_'+str(bb)+'.trans', 'w')
 
 def iter_plots( dx, dy, pos_txt, pref):
     #first want quiver plot of the residuals wrt data
