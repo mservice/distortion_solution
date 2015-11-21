@@ -632,16 +632,16 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
                     plt.clf()
                     match_trim.plot_lookup_diff(lookup_x_prev, lookup_y_prev, lookupx, lookupy)
                     plt.savefig(run_base+'iter_'+str(i)+'diff_sequence.png')
-            np.save(open(run_base+'iter_'+str(i)+'lookupx.npy', 'w'),lookupx)
-            np.save(open(run_base+'iter_'+str(i)+'lookupy.npy', 'w'),lookupy)
+            #np.save(open(run_base+'iter_'+str(bb)+'lookupx.npy', 'w'),lookupx)
+            #np.save(open(run_base+'iter_'+str(bb)+'lookupy.npy', 'w'),lookupy)
             
             
 
         #save tranform objects in case I want them later
-            f= open(run_base+str(i)+'.trans', 'w')
+            f= open(run_base+str(bb)+'.trans', 'w')
             pickle.dump(tn, f)
             if plot:
-                iter_plots(dxn, dyn, 'sig_trim'+data_base+str(i)+'.txt', run_base+'iter_'+str(i))
+                iter_plots(dxn, dyn, 'sig_trim'+data_base+str(bb)+'.txt', run_base+'iter_'+str(i))
                 
         f= open(run_base+str(i)+'_'+str(bb)+'.trans', 'w')
 
