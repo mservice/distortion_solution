@@ -534,12 +534,12 @@ def leg2lookup(t, plot=False, sample_center=True):
     '''
     samples legendre tranformation at each pixel and returns the resulting array
     '''
-
+    
     if sample_center:
         xrange = np.linspace(.5, 1023.5, num=1024)
     else:
         xrange = np.linspace(0,1023,num=1024)
-        
+    #import pdb;pdb.set_trace()    
     yrange = xrange
     outx = np.zeros((len(xrange),len(yrange)))
     outy = np.zeros((len(xrange),len(yrange)))
@@ -557,7 +557,7 @@ def leg2lookup(t, plot=False, sample_center=True):
         plt.figure(1)
         plt.imshow(outx)
         plt.colorbar()
-        plt.title('X distortion')
+        plt.title('X distortoin')
         plt.figure(2)
         plt.imshow(outy)
         plt.title('Y distortion')
@@ -798,6 +798,32 @@ def plot_dist(out1, out2, title1='Legendre', title2='Spline', title3='Difference
     if show:
         plt.show()
 
+
+def plot_distxy(trans, title1='X', title2='Y', outfile=None, show=False):
+
+    out1, out2 = leg2lookup(trans)
+    plt.figure(1)
+    plt.clf()
+    plt.gray()
+    plt.subplot(121)
+    vmax = np.max(out1)
+    vmin = np.min(out1)
+    plt.imshow(out1, vmax=vmax, vmin=vmin)
+    plt.colorbar()
+    plt.title(title1)
+
+    plt.subplot(122)
+    vmax = np.max(out2)
+    vmin = np.min(out2)
+    plt.imshow(out2, vmax=vmax, vmin=vmin)
+    plt.colorbar()
+    plt.title(title2)
+    
+    if outfile != None:
+        plt.savefig(outfile)
+ 
+    if show:
+        plt.show()
 def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     #plt.figure(10)
     plt.clf()
@@ -814,6 +840,11 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     coos = np.meshgrid(indices, indices)
     q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
     qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixel', coordinates='data', color='red')
+    plt.xlim(-200,1200)
+    plt.ylim(-200,1200)
+    plt.text(-100,1050,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
+    plt.text(-100,1100,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
+    plt.axes().set_aspect('equal')
     
 def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
     #plt.figure(10)
@@ -831,6 +862,10 @@ def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
     coos = np.meshgrid(indices, indices)
     q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
     qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixels', coordinates='data', color='red')
+    plt.xlim(-100,1100)
+    plt.ylim(-100,1100)
+    plt.axes().set_aspect('equal')
+    
     
 def mk_quiver_from_txt(pos_txt='april_pos.txt', title_s='April'):
 
@@ -1033,3 +1068,35 @@ def lookup2fits(lx, ly, namex='dist_look_X.fits', namey='dist_look_Y.fits'):
 
     hdux.writeto(namex, clobber='True')
     hduy.writeto(namey, clobber='True')
+
+
+def plot_diff_ref(reffile1,ids = None, scale_size=.005):
+    '''
+    plots a quiver plot of the differnce between the positions of stars detected in the original HST catalog and my final reference
+    '''
+
+    ref = Table.read(reffile1, format='ascii.fixed_width')
+    hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
+
+    if ids == None:
+        idn , idhst = match_by_name(ref['Name'], hst['Name'], ret_both=True)
+    else:
+        idhst = ids[0]
+        idn = ids[1]
+    dx = ref['Xarc'][idn] - hst['Xarc'][idhst]*.05
+    dy = ref['Yarc'][idn] - hst['Yarc'][idhst]*.05
+
+    scale=.1
+
+    #import pdb;pdb.set_trace()
+    
+
+    q = plt.quiver(hst['Xarc'][idhst]*.05, hst['Yarc'][idhst]*.05, dx, dy, scale = scale)
+    qk = plt.quiverkey(q,110, -110, scale_size , str(scale_size)+' arcseconds', coordinates='data', color='red')
+    plt.xlim(80,120)
+    plt.ylim(-140,-100)
+    plt.text(85,-110,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx*10**-3)))[:5]+' mas')
+    plt.text(85,-105,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy*10**-3)))[:5]+' mas')
+    plt.axes().set_aspect('equal')
+
+    return idhst, idn

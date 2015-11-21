@@ -16,51 +16,7 @@ from jlu.util import statsIter
 import pickle
 from distortion_solution import match_trim
 
-def leg2lookup(t, plot=False):
 
-    xrange = np.linspace(0,1023,num=1024)
-    yrange = xrange
-    outx = np.zeros((len(xrange),len(yrange)))
-    outy = np.zeros((len(xrange),len(yrange)))
-    
-    for i in range(len(xrange)):
-        xin = np.zeros(yrange.shape) + xrange[i]
-        xn,yn = t.evaluate(xin, yrange)
-        for y in yrange:
-            
-            outx[:,i] = xn
-            outy[:,i] = yn
-
-    if plot:
-        plt.gray()
-        plt.figure(1)
-        plt.imshow(outx)
-        plt.colorbar()
-        plt.title('X distortion')
-        plt.figure(2)
-        plt.imshow(outy)
-        plt.title('Y distortion')
-        plt.colorbar()
-        plt.show()
-    return outx,outy
-            
-def spline2lookup(splinex,spliney):
-    xrange = np.linspace(0,1023,num=1024)
-    #import pdb;pdb.set_trace()
-    yrange = xrange
-    outx = np.zeros((len(xrange),len(yrange)))
-    outy = np.zeros((len(xrange),len(yrange)))
-
-    for i in range(len(xrange)):
-        xin = np.zeros(yrange.shape) + xrange[i]
-        xn = splinex.ev(xin,yrange)
-        yn = spliney.ev(xin, yrange)
-        for y in yrange:
-            
-            outx[:,i] = xn
-            outy[:,i] = yn
-
-    return outx,outy
 
 def fit_dist(pos_txt='april_pos.txt', order=6, n_iter_fit=10, nstring=None, lookup=True, poly_type=1, wtype=1):
     '''
@@ -85,7 +41,7 @@ def fit_dist(pos_txt='april_pos.txt', order=6, n_iter_fit=10, nstring=None, look
     print 'fitting ', np.sum(gbool), ' stars after zero error cut'
     t, dx, dy, sbool = calc_sig_dist_leg( tab['x'][gbool],  tab['y'][gbool],  tab['xr'][gbool] ,  tab['yr'][gbool], weights=weights[gbool], n_iter=n_iter_fit, order=order, ret_bool=True, poly_type=poly_type)
     if lookup:
-        outx, outy = leg2lookup(t)
+        outx, outy = match_trim.leg2lookup(t)
         return t, outx, outy, dx, dy, sbool
     else:
         return t, dx, dy, gbool, sbool
@@ -583,7 +539,7 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
         plt.savefig('yelda_plots/Leg_y_resid_ord'+str(i)+'.png')
        
 
-def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt'):
+def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app=''):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
     #spaitally sigma trim the positions
@@ -598,7 +554,7 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt'):
     hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
 
     #import pdb;pdb.set_trace()
-    run_base = 'Nref_leg'+str(order)
+    run_base = pref_app+'Nref_leg'+str(order)
     f= open(run_base+'hst.trans', 'w')
     pickle.dump(tn, f)
     for i in range(iter):
@@ -609,7 +565,7 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt'):
         #created a new reference, need to sigma trim it
         match_trim.sig_trim_ref(data_base+str(i)+'.txt')
         #now can fit distortion using this as the reference
-        tn,lookupx, lookupy,  dxn, dyn, sbooln = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=True)
+        tn,lookupx, lookupy,  dxn, dyn, sbooln = fit_dist(pos_txt='sig_trim'+data_base+str(i)+'.txt',order=order, n_iter_fit=1, lookup=True, wtype=2)
         if i !=0:
             plt.figure(5)
             plt.clf()
