@@ -602,7 +602,7 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
 
     #for bootstrap, need to split the data in half, write new file, run everything from that base
    
-    for bb in range(bot_trials):
+    for bb in range(boot_trials):
 
         dum_tab = Table.read('sig_trim'+initial_data, format='ascii.fixed_width')
         newtab =dum_tab[np.random.rand(len(dum_tab))]
