@@ -605,7 +605,7 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
     for bb in range(boot_trials):
 
         dum_tab = Table.read('sig_trim'+initial_data, format='ascii.fixed_width')
-        newtab =dum_tab[np.random.rand(len(dum_tab))]
+        newtab =dum_tab[np.random.rand(len(dum_tab)) < .5]
         newtab.write('sig_trim_'+str(bb)+initial_data, format='ascii.fixed_width')
         tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim_'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
     
