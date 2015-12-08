@@ -255,7 +255,7 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     
     return xall, yall, mall
 
-def create_ref_from_lis(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], weights=None):
+def align(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], weights=None):
     """
     Parameters
     ----------

@@ -842,11 +842,11 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixel', coordinates='data', color='red')
     plt.xlim(-200,1200)
     plt.ylim(-200,1200)
-    plt.text(-100,1050,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
-    plt.text(-100,1100,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
+    plt.text(800,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
+    plt.text(800,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
     plt.axes().set_aspect('equal')
     
-def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
+def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3):
     #plt.figure(10)
     plt.clf()
     indices = range(0,1024,spacing)
@@ -861,9 +861,9 @@ def plot_lookup(lx,ly, spacing=24, scale=10, scale_size=.5):
     
     coos = np.meshgrid(indices, indices)
     q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
-    qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixels', coordinates='data', color='red')
-    plt.xlim(-100,1100)
-    plt.ylim(-100,1100)
+    qk = plt.quiverkey(q,1000, 1030, scale_size , str(scale_size)+' pixels', coordinates='data', color='red')
+    plt.xlim(-200,1200)
+    plt.ylim(-200,1200)
     plt.axes().set_aspect('equal')
     
     
