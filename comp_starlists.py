@@ -255,8 +255,11 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     
     return xall, yall, mall
 
-def align(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], weights=None):
+def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], order=1, weights=None):
     """
+    Performs alignment of input catalogs to the reference coordiantes.
+    Does not account for propoer motions, so it is designed for doing alignment within a single temporal epoch
+    
     Parameters
     ----------
     xrefin : numpy array
@@ -266,7 +269,7 @@ def align(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW
     mrefin : numpy array
         array of x positions in the reference epoch
     lis_f : string
-        one column text file containing a list of filenames of the starfinder starlists
+        one column text file containing a list of filenames of the starfinder type starlists
     dr_tol: float
         maximum radial distance when looking for matches
     trans_model : transformation model object (class)
@@ -280,13 +283,13 @@ def align(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW
     param_lis: (optional) list of arrays with same shape as catalogs being matched
          List of parameters to be matched along with the psotions and magnitudes.
          form is [[Name_cat_1, Name_cat_2,...],[param_2_cat_1, param_2_cat_2, ....]]
-         Here Name_cat_1 must be arrays, or at least carry a Numpy data type
+         Here Name_cat_1 must be array-like, it must have a Numpy dtpye attribute 
     
     req_match: integer number of required matches of the input catalog to the total reference
 
     See Also
     --------
-    high_order
+    Transform2D
     
     """
 
@@ -320,9 +323,9 @@ def align(xrefin, yrefin, mrefin, lis_f='lis.lis', trans=high_order.four_paramNW
         #import pdb;pdb.set_trace()
         if trans_lis==None:
             N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xrefin, yrefin, mrefin, 50)
-            assert len(x1m) > req_match
+            assert len(x1m) > req_match, 'Failed to find at least '+str(req_match+' matches, giving up'
 
-            t = trans(x1m, y1m ,x2m, y2m)
+            t = trans_model(x1m, y1m ,x2m, y2m, order=order, weights=weights)
 
         else:
             t = trans_lis[i]
