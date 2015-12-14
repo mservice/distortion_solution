@@ -14,6 +14,7 @@ from distortion_solution import match_trim
 
 
 def go(plot=True, trans_file='Nref_leg69.trans'):
+    
     lis_stf = Table.read('lis.lis', format='ascii.no_header')
     lisd = Table.read('lis_dn.lis', format='ascii.no_header')
     darlis = Table.read('darn.lis', format='ascii.no_header')
@@ -259,6 +260,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
     """
     Performs alignment of input catalogs to the reference coordiantes.
     Does not account for propoer motions, so it is designed for doing alignment within a single temporal epoch
+    Note , if you subtracte out knonw proper motions, then this can work intra-epoch
     
     Parameters
     ----------

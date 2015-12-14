@@ -663,4 +663,31 @@ def iter_plots( dx, dy, pos_txt, pref):
     plt.ylabel('N')
     plt.legend(loc='upper right')
     plt.savefig(pref+'hist_resid.png')
-    
+
+
+
+def calc_err(lis_trans='trans.lis'):
+    '''
+    calulates errors in transformation from bootstrap
+    '''
+
+    ttab = Table.read(liis_trans, format='ascii.no_header')
+    lx = []
+    ly = []
+    for trans_p in ttab['col1']:
+        t = pickle.load(open(trans_p, 'r'))
+        outx, outy = match_trim.leg2lookup(t)
+
+        lx.append(outx)
+        ly.append(outy)
+
+    lxn = np.array(lx)
+    lyn - np.array(ly)
+
+    distx = np.mean(lxn, axis=0)
+    disty = np.mean(lyn, axis=0)
+
+    err_x = np.std(lxn, axis=0)
+    err_y = np.std(lyn, axis=0)
+
+    return distx, disty, err_x, err_y

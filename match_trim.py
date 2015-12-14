@@ -1070,33 +1070,45 @@ def lookup2fits(lx, ly, namex='dist_look_X.fits', namey='dist_look_Y.fits'):
     hduy.writeto(namey, clobber='True')
 
 
-def plot_diff_ref(reffile1,ids = None, scale_size=.005):
+def plot_diff_ref(reffile1,ids = None, hstfile='../../../M53_F814W/F814_pix_err.dat.rot',scale_size=5, scalehst=.05, formhst='ascii', scale=5):
     '''
     plots a quiver plot of the differnce between the positions of stars detected in the original HST catalog and my final reference
     '''
 
     ref = Table.read(reffile1, format='ascii.fixed_width')
-    hst = Table.read('../../../M53_F814W/F814_pix_err.dat.rot', format='ascii')
+    
+    hst = Table.read(hstfile, format=formhst)
+    #hst = hst[hst['N'] > 5]
+    #ref = ref[ref['N'] > 5]
+
+    #import pdb; pdb.set_trace()
 
     if ids == None:
         idn , idhst = match_by_name(ref['Name'], hst['Name'], ret_both=True)
     else:
         idhst = ids[0]
         idn = ids[1]
-    dx = ref['Xarc'][idn] - hst['Xarc'][idhst]*.05
-    dy = ref['Yarc'][idn] - hst['Yarc'][idhst]*.05
+    dx = ref['Xarc'][idn] - hst['Xarc'][idhst]*scalehst
+    dy = ref['Yarc'][idn] - hst['Yarc'][idhst]*scalehst
 
-    scale=.1
+    print np.mean(dx), np.std(dx)
+    print np.mean(dy), np.std(dy)
+
+   
 
     #import pdb;pdb.set_trace()
     
 
-    q = plt.quiver(hst['Xarc'][idhst]*.05, hst['Yarc'][idhst]*.05, dx, dy, scale = scale)
-    qk = plt.quiverkey(q,110, -110, scale_size , str(scale_size)+' arcseconds', coordinates='data', color='red')
-    plt.xlim(80,120)
-    plt.ylim(-140,-100)
-    plt.text(85,-110,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx*10**-3)))[:5]+' mas')
-    plt.text(85,-105,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy*10**-3)))[:5]+' mas')
+    q = plt.quiver(hst['Xarc'][idhst]*scalehst, hst['Yarc'][idhst]*scalehst, dx*10**3, dy*10**3, scale = scale)
+    qk = plt.quiverkey(q,103, -117, scale_size , str(scale_size)+' mas', coordinates='data', color='red')
+    plt.xlim(84,111)
+    plt.ylim(-135,-115)
+    #plt.text(90,-117,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx*10**-3)))[:5]+' mas')
+    #plt.text(90,-118,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy*10**-3)))[:5]+' mas')
+
+    plt.text(85,-117,r'$\sigma_{x}$:'+str(np.std(dx*10**3))[:5]+' mas')
+    plt.text(85,-118,r'$\sigma_{y}$:'+str(np.std(dy*10**3))[:5]+' mas')
     plt.axes().set_aspect('equal')
+    
 
     return idhst, idn
