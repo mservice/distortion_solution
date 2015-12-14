@@ -638,7 +638,7 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
             
 
         #save tranform objects in case I want them later
-            f= open(run_base+str(bb)+'.trans', 'w')
+            f= open(run_base+'outsol'+str(bb)+'.trans', 'w')
             pickle.dump(tn, f)
             if plot:
                 iter_plots(dxn, dyn, 'sig_trim'+data_base+str(bb)+'.txt', run_base+'iter_'+str(i))
@@ -671,7 +671,7 @@ def calc_err(lis_trans='trans.lis'):
     calulates errors in transformation from bootstrap
     '''
 
-    ttab = Table.read(liis_trans, format='ascii.no_header')
+    ttab = Table.read(lis_trans, format='ascii.no_header')
     lx = []
     ly = []
     for trans_p in ttab['col1']:
