@@ -842,8 +842,32 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixel', coordinates='data', color='red')
     plt.xlim(-200,1200)
     plt.ylim(-200,1200)
-    plt.text(800,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
-    plt.text(800,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
+    plt.text(700,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
+    plt.text(700,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
+    plt.axes().set_aspect('equal')
+
+def plot_lookup_diff_norm(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
+    #plt.figure(10)
+    xerr = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Xerr_withResidual.fits.gz')[0].data
+    yerr = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Yerr_withResidual.fits.gz')[0].data
+    plt.clf()
+    indices = range(0,1024,spacing)
+    coos = np.meshgrid(indices, indices)
+    dx = np.zeros(coos[0].shape)
+    dy = np.zeros(coos[0].shape)
+    
+    for i in range(len(indices)):
+        for j in range(len(indices)):
+            dx[i,j] = (l1x[indices[i],indices[j]] - l2x[indices[i],indices[j]]) / (np.sqrt(2) * xerr[indices[i], indices[j]])
+            dy[i,j] = (l1y[indices[i],indices[j]] - l2y[indices[i],indices[j]]) / ( np.sqrt(2) * yerr[indices[i], indices[j]])
+    
+    coos = np.meshgrid(indices, indices)
+    q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
+    qk = plt.quiverkey(q,200, 1100, scale_size , str(scale_size)+' sigma', coordinates='data', color='red')
+    plt.xlim(-200,1200)
+    plt.ylim(-200,1200)
+    plt.text(400,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' sigma')
+    plt.text(400,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' sigma')
     plt.axes().set_aspect('equal')
     
 def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3):

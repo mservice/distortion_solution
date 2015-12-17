@@ -213,21 +213,21 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     yref = ref_tab['Yarc'][nrefbool]
     mref = ref_tab['Mag'][nrefbool]
 
-    xall, yall, mall = create_ref_from_lis(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=.01)
+    xall, yall, mall = align_inter_epoch(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=.01)
 
     #now create averages not includeing the reference for stars with at least 20 measurements
-    Ninv = np.sum(xall[:,1:].mask, axis=1)
-    N = xall[:,1:].shape[1] - Ninv
+    Ninv = np.sum(xall.mask, axis=1)
+    N = xall.shape[1] - Ninv
     nbool = N > 20
 
-    xavg = np.mean(xall[:,1:],axis=1)
-    xerr = np.std(xall[:,1:], axis=1)
+    xavg = np.mean(xall,axis=1)
+    xerr = np.std(xall, axis=1)
     
-    yavg = np.mean(yall[:,1:],axis=1)
-    yerr = np.std(yall[:,1:], axis=1)
+    yavg = np.mean(yall,axis=1)
+    yerr = np.std(yall, axis=1)
     
-    mavg = np.mean(mall[:,1:],axis=1)
-    merr = np.std(mall[:,1:], axis=1)
+    mavg = np.mean(mall,axis=1)
+    merr = np.std(mall, axis=1)
 
     xeom = xerr / np.sqrt(N-1)
     yeom = yerr / np.sqrt(N-1)
@@ -260,7 +260,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
     """
     Performs alignment of input catalogs to the reference coordiantes.
     Does not account for propoer motions, so it is designed for doing alignment within a single temporal epoch
-    Note , if you subtracte out knonw proper motions, then this can work intra-epoch
+   
     
     Parameters
     ----------
@@ -285,9 +285,9 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
     param_lis: (optional) list of arrays with same shape as catalogs being matched
          List of parameters to be matched along with the psotions and magnitudes.
          form is [[Name_cat_1, Name_cat_2,...],[param_2_cat_1, param_2_cat_2, ....]]
-         Here Name_cat_1 must be array-like, it must have a Numpy dtpye attribute 
-    
-    req_match: integer number of required matches of the input catalog to the total reference
+         Here Name_cat_1 must be array-like, it must have a Numpy dtpye attribute    
+    req_match: integer
+         number of required matches of the input catalog to the total reference
 
     See Also
     --------
@@ -325,7 +325,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
         #import pdb;pdb.set_trace()
         if trans_lis==None:
             N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xrefin, yrefin, mrefin, 50)
-            assert len(x1m) > req_match, 'Failed to find at least '+str(req_match+' matches, giving up'
+            assert len(x1m) > req_match#, 'Failed to find at least '+str(req_match+' matches, giving up'
 
             t = trans_model(x1m, y1m ,x2m, y2m, order=order, weights=weights)
 
@@ -423,8 +423,6 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
     mrefout = mref[1:,:]
 
     #return large 2d array of each quantity
-    #Note that the reference measuremtns are still included (first column)
-    #QUESTION: Do I return the index arrays or 2-d arrays????
     #for now, try to create 2-d arrays
     #also note, data types must be supported by numpy arrays, or this will fail.
     if params_lis != []:
@@ -446,7 +444,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
 
 
     #return matched 2-d arrays.  These DO NOT include the reference.
-    return xref, yref, mref, out_param_lis
+    return xrefout, yrefout, mrefout, out_param_lis
 
             
 
