@@ -423,7 +423,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
     xrefout = xref[:,1:]
     yrefout = yref[:,1:]
     mrefout = mref[:,1:]
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
 
     #return large 2d array of each quantity
     #for now, try to create 2-d arrays
@@ -560,7 +560,7 @@ def test_iden_align():
     startab.write('dum_test.lis', format='ascii.no_header')
     f = open('dumdum.lis', 'w')
     f.write('dum_test.lis\n')
-    f.write('dum_test.lis\n')
+    #f.write('dum_test.lis\n')
     f.close()
 
     xall, yall, magall, dum = align_interepoch(x, y, mag, lis_f='dumdum.lis')
@@ -570,4 +570,4 @@ def test_iden_align():
     os.remove('dumdum.lis')
     os.remove('dum_test.lis')
 
-    return xall, yall,x, y
+    #return xall, yall,x, y
