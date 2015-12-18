@@ -11,6 +11,7 @@ import matplotlib.animation as manimation
 from visvis.vvmovie.images2gif import writeGif
 from scipy.misc import imread
 from distortion_solution import match_trim
+import os 
 
 
 def go(plot=True, trans_file='Nref_leg69.trans'):
@@ -213,7 +214,7 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     yref = ref_tab['Yarc'][nrefbool]
     mref = ref_tab['Mag'][nrefbool]
 
-    xall, yall, mall = align_inter_epoch(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=.01)
+    xall, yall, mall , d= align_interepoch(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=.01, req_match=1,save_trans=True)
 
     #now create averages not includeing the reference for stars with at least 20 measurements
     Ninv = np.sum(xall.mask, axis=1)
@@ -256,7 +257,7 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     
     return xall, yall, mall
 
-def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], order=1, weights=None):
+def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], order=1, weights=None, save_trans=False):
     """
     Performs alignment of input catalogs to the reference coordiantes.
     Does not account for propoer motions, so it is designed for doing alignment within a single temporal epoch
@@ -328,6 +329,8 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
             assert len(x1m) > req_match#, 'Failed to find at least '+str(req_match+' matches, giving up'
 
             t = trans_model(x1m, y1m ,x2m, y2m, order=order, weights=weights)
+            if save_trans:
+                pickle.dump(t, open(str(i)+'.trans', 'w'))
 
         else:
             t = trans_lis[i]
@@ -335,8 +338,7 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
 
         xt,yt = t.evaluate(cat['col4'], cat['col5'])
         #now match again
-        #import pdb;pdb.set_trace()
-        idx1 , idx2 , dm, dr = align.match(xt,yt ,cat['col2'],  xrm.data, yrm.data, mrm.data, dr_tol)
+        idx1 , idx2 , dm, dr = align.match(xt,yt ,cat['col2'],  xrm, yrm, mrm, dr_tol)
         print 'Number of matches:',len(idx1)
         #assert len(idx1) > req_match
 
@@ -418,13 +420,15 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
                 
                 
 
-    xrefout = xref[1:,:]
-    yrefout = yref[1:,:]
-    mrefout = mref[1:,:]
+    xrefout = xref[:,1:]
+    yrefout = yref[:,1:]
+    mrefout = mref[:,1:]
+    import pdb;pdb.set_trace()
 
     #return large 2d array of each quantity
     #for now, try to create 2-d arrays
     #also note, data types must be supported by numpy arrays, or this will fail.
+    out_param_lis = []
     if params_lis != []:
         out_param_lis = []
         #loop through parameters
@@ -515,4 +519,55 @@ def find_trans_from_match_by_name(ref_tab):
             
             
         
-        
+def trans2data(lis_trans):
+    #trans_tab = Table.read(lis_trans, format='ascii.no_header')
+
+    scale = []
+    offx = []
+    offy = []
+    rot = []
+
+    for i in range(100):
+        t = pickle.load(open(str(i)+'.trans', 'r'))
+        offx.append(t.cx[0])
+        offy.append(t.cy[0])
+
+    offx = np.array(offx)
+    offy = np.array(offy)
+    offx = (offx - offx[0]) / .01
+    offy = (offy - offy[0]) / .01
+    outtab = Table(data=[offx, offy], names=['offx', 'offy'])
+    outtab.write('files.dat', format='ascii')
+
+
+
+def test_iden_align():
+    '''
+    Test to demonstrate we can find the matches in identical starsets
+    '''
+
+    #take coordiantes for 100 stars
+    #write them into a couple of starfinder type catalogs
+    #use same 100 stars as the reference
+    #match and look at output
+    x = np.random.uniform(low=0, high=1000, size=100) 
+    y = np.random.uniform(low=0, high=1000, size=100) 
+    mag = np.random.uniform(low=5, high=15, size=100)
+
+    #write catalog
+    ones = np.ones(100)
+    startab = Table(data=[ones, mag, ones, x, y, ones, ones, ones, ones])
+    startab.write('dum_test.lis', format='ascii.no_header')
+    f = open('dumdum.lis', 'w')
+    f.write('dum_test.lis\n')
+    f.write('dum_test.lis\n')
+    f.close()
+
+    xall, yall, magall, dum = align_interepoch(x, y, mag, lis_f='dumdum.lis')
+    assert np.sum(np.mean(xall, axis=1) - x ) < 10**-8
+    assert np.sum(np.mean(yall, axis=1) - y ) < 10**-8
+
+    os.remove('dumdum.lis')
+    os.remove('dum_test.lis')
+
+    return xall, yall,x, y
