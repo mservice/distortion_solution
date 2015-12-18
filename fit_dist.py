@@ -690,4 +690,9 @@ def calc_err(lis_trans='trans.lis'):
     err_x = np.std(lxn, axis=0)
     err_y = np.std(lyn, axis=0)
 
+    np.save('dx.npy', distx)
+    np.save('dy.npy', disty)
+    np.save('dxerr.npy', dxerr)
+    np.save('dyerr.npy', dyerr)
+
     return distx, disty, err_x, err_y
