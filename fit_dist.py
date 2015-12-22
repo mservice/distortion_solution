@@ -605,7 +605,10 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
     for bb in range(boot_trials):
 
         dum_tab = Table.read('sig_trim'+initial_data, format='ascii.fixed_width')
-        newtab =dum_tab[np.random.rand(len(dum_tab)) < .5]
+        #newtab =dum_tab[np.random.uniform(len(dum_tab)) < .5]
+        rand_bool = np.random.choice(len(dum_tab), size=int(len(dum_tab)/2.0))
+        tmptab = dum_tab[rand_bool]
+        newtab = table.join(tmptab, tmptab)
         newtab.write('sig_trim_'+str(bb)+initial_data, format='ascii.fixed_width')
         tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim_'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
     
@@ -682,7 +685,7 @@ def calc_err(lis_trans='trans.lis'):
         ly.append(outy)
 
     lxn = np.array(lx)
-    lyn - np.array(ly)
+    lyn = np.array(ly)
 
     distx = np.mean(lxn, axis=0)
     disty = np.mean(lyn, axis=0)
@@ -692,7 +695,7 @@ def calc_err(lis_trans='trans.lis'):
 
     np.save('dx.npy', distx)
     np.save('dy.npy', disty)
-    np.save('dxerr.npy', dxerr)
-    np.save('dyerr.npy', dyerr)
+    np.save('dxerr.npy', err_x)
+    np.save('dyerr.npy', err_y)
 
     return distx, disty, err_x, err_y
