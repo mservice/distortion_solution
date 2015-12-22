@@ -1,4 +1,5 @@
 from astropy.table import Table
+from astropy.table import join
 from jlu.astrometry.align  import jay  
 import numpy as np
 from jlu.astrometry import high_order_class as high_order
@@ -608,7 +609,7 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
         #newtab =dum_tab[np.random.uniform(len(dum_tab)) < .5]
         rand_bool = np.random.choice(len(dum_tab), size=int(len(dum_tab)/2.0))
         tmptab = dum_tab[rand_bool]
-        newtab = table.join(tmptab, tmptab)
+        newtab = join(tmptab, tmptab)
         newtab.write('sig_trim_'+str(bb)+initial_data, format='ascii.fixed_width')
         tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim_'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
     
