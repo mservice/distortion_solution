@@ -111,7 +111,7 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, ma
         ynew = cy[0] + cy[1]*xhst + cy[2]*yhst
         cx,cy = high_order.four_param(xhst[idhst][tbool], yhst[idhst][tbool], stf['col1'][tbool], stf['col3'][tbool])
         
-        return stf['col1'], stf['col3'] xnew[idhst], ynew[idhst], ref['Name'][idhst], stf['col5'], ref['Mag'][idhst], (ref['xerr'][idhst]*ref_scale)/stf_pix_scale, (ref['yerr'][idhst]*ref_scale)/stf_pix_scale, stf['col2'], stf['col4']
+        return stf['col1'], stf['col3'], xnew[idhst], ynew[idhst], ref['Name'][idhst], stf['col5'], ref['Mag'][idhst], (ref['xerr'][idhst]*ref_scale)/stf_pix_scale, (ref['yerr'][idhst]*ref_scale)/stf_pix_scale, stf['col2'], stf['col4']
 
     if ap_dar:
         #this applies DAR to space coordinates, to make thme comparable to the Nirc2 distorted frames
