@@ -592,11 +592,9 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst
         #now we have a new distortion solution, so we return to step 1
 
 
-def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100):
+def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100, double=False):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
-    #spaitally sigma trim the positions
-    match_trim.sig_trim_ref(initial_data)
     #now fit the distortion
     ref_base = 'Nref_leg'+str(order)
     data_base = 'pos_leg'+str(order)
@@ -605,13 +603,20 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
    
     for bb in range(boot_trials):
 
-        dum_tab = Table.read('sig_trim'+initial_data, format='ascii.fixed_width')
-        #newtab =dum_tab[np.random.uniform(len(dum_tab)) < .5]
-        rand_bool = np.random.choice(len(dum_tab), size=int(len(dum_tab)/2.0))
-        tmptab = dum_tab[rand_bool]
-        newtab = join(tmptab, tmptab)
-        newtab.write('sig_trim_'+str(bb)+initial_data, format='ascii.fixed_width')
-        tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim_'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
+        tab = Table.read(initial_data, format='ascii.fixed_width')
+        rand_bool = np.random.choice(len(tab), size=int(len(tab)/2.0))
+        #import pdb;pdb.set_trace()
+        tmptab = tab[rand_bool]
+        if double:
+            newtab = join(tmptab, tmptab)
+        else:
+            newtab = tmptab
+        newtab.write(str(bb)+initial_data, format='ascii.fixed_width')
+        
+        #spaitally sigma trim the positions
+        match_trim.sig_trim_ref(str(bb)+initial_data)
+    
+        tn, dx5n, dy5n, sbooln, b2= fit_dist(pos_txt='sig_trim'+str(bb)+initial_data,order=order, n_iter_fit=1, lookup=False)
     
     
         tab_match = Table.read('first_fits_m.lis', format='ascii.no_header')
