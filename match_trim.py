@@ -82,7 +82,7 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     return   stf['col4'][idx1], stf['col5'][idx1], xnew[idx2], ynew[idx2], hst['Name'][idx2], np.ones(len(hst), dtype='bool'), idx2, stf['col2'][idx1], hst['Mag'][idx2], hst['xerr'][idx2], hst['yerr'][idx2]
 
 
-def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, mat_new=False ):
+def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, mat_new=True ):
     '''
     lis_f is the name of the fits table containing the Nirc2 coordiantes form a single pointing
     ref is the "distortion free" reference (either Nirc2 or HST)
@@ -107,9 +107,9 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, ma
         hst_ebool = (ref['xerr'][idhst] < ecut / ref_scale )*(ref['yerr'][idhst] < ecut / ref_scale)
         stf_ebool = (stf['col2'] < ecut / stf_pix_scale)*(stf['col4'] < ecut / stf_pix_scale)
         tbool = hst_ebool * stf_ebool
+        cx,cy = high_order.four_param(xhst[idhst][tbool], yhst[idhst][tbool], stf['col1'][tbool], stf['col3'][tbool])
         xnew = cx[0] + cx[1]*xhst + cx[2]*yhst
         ynew = cy[0] + cy[1]*xhst + cy[2]*yhst
-        cx,cy = high_order.four_param(xhst[idhst][tbool], yhst[idhst][tbool], stf['col1'][tbool], stf['col3'][tbool])
         
         return stf['col1'], stf['col3'], xnew[idhst], ynew[idhst], ref['Name'][idhst], stf['col5'], ref['Mag'][idhst], (ref['xerr'][idhst]*ref_scale)/stf_pix_scale, (ref['yerr'][idhst]*ref_scale)/stf_pix_scale, stf['col2'], stf['col4']
 
@@ -478,7 +478,7 @@ def precision_stack(lis_files, hst_tab_ref, hst_tab_red,  order=3, plot_hist=Fal
         
 
     
-def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_dar=True):
+def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_dar=True, mat_new=False):
     '''
     arguements:
     lis_files: list of fileanmes that are the NIRC2 position catalogs
@@ -520,7 +520,7 @@ def collate_pos(lis_files, hst_tab_ref ,DAR_fits,ref_scale,plot_hist=False, ap_d
         
     for index, i in enumerate(lis_files):
            
-        x,y,xr,yr, name, s_mag, fmag,hst_xerr, hst_yerr, stf_xerr, stf_yerr = match2hst_err(i, hst_tab_ref, DAR_fits[index],ref_scale=ref_scale, ap_dar=ap_dar)
+        x,y,xr,yr, name, s_mag, fmag,hst_xerr, hst_yerr, stf_xerr, stf_yerr = match2hst_err(i, hst_tab_ref, DAR_fits[index],ref_scale=ref_scale, ap_dar=ap_dar, mat_new=mat_new)
         for ii in range(len(x)):
             xstf.append(x[ii])
             ystf.append(y[ii])
