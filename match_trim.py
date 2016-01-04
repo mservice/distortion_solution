@@ -82,13 +82,14 @@ def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     return   stf['col4'][idx1], stf['col5'][idx1], xnew[idx2], ynew[idx2], hst['Name'][idx2], np.ones(len(hst), dtype='bool'), idx2, stf['col2'][idx1], hst['Mag'][idx2], hst['xerr'][idx2], hst['yerr'][idx2]
 
 
-def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True ):
+def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, mat_new=False ):
     '''
     lis_f is the name of the fits table containing the Nirc2 coordiantes form a single pointing
     ref is the "distortion free" reference (either Nirc2 or HST)
     ecut (arcseconds) is the error cut that must be met for stars to be included in the 4 parameter tranfomtion between reference and lis_f
     
     ref_scale is scale if refernce catalog in arcsconds/pixel
+    if not mat_new: Simply return the matches that were previosly known, this is only different by a few data points then rematching.
     '''
 
    
@@ -101,6 +102,16 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True ):
     stf_pix_scale =.01
     
     idhst = match_by_name(stf['col0'], ref['Name'])
+
+    if not mat_new:
+        hst_ebool = (ref['xerr'][idhst] < ecut / ref_scale )*(ref['yerr'][idhst] < ecut / ref_scale)
+        stf_ebool = (stf['col2'] < ecut / stf_pix_scale)*(stf['col4'] < ecut / stf_pix_scale)
+        tbool = hst_ebool * stf_ebool
+        xnew = cx[0] + cx[1]*xhst + cx[2]*yhst
+        ynew = cy[0] + cy[1]*xhst + cy[2]*yhst
+        cx,cy = high_order.four_param(xhst[idhst][tbool], yhst[idhst][tbool], stf['col1'][tbool], stf['col3'][tbool])
+        
+        return stf['col1'], stf['col3'] xnew[idhst], ynew[idhst], ref['Name'][idhst], stf['col5'], ref['Mag'][idhst], (ref['xerr'][idhst]*ref_scale)/stf_pix_scale, (ref['yerr'][idhst]*ref_scale)/stf_pix_scale, stf['col2'], stf['col4']
 
     if ap_dar:
         #this applies DAR to space coordinates, to make thme comparable to the Nirc2 distorted frames
