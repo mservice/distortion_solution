@@ -107,6 +107,7 @@ def match2hst_err(lis_f, ref, fits_file, ecut=.01, ref_scale=1.0,ap_dar=True, ma
         hst_ebool = (ref['xerr'][idhst] < ecut / ref_scale )*(ref['yerr'][idhst] < ecut / ref_scale)
         stf_ebool = (stf['col2'] < ecut / stf_pix_scale)*(stf['col4'] < ecut / stf_pix_scale)
         tbool = hst_ebool * stf_ebool
+        xhst, yhst = applyDAR_coo(fits_file,xinit*ref_scale,yinit*ref_scale)
         cx,cy = high_order.four_param(xhst[idhst][tbool], yhst[idhst][tbool], stf['col1'][tbool], stf['col3'][tbool])
         xnew = cx[0] + cx[1]*xhst + cx[2]*yhst
         ynew = cy[0] + cy[1]*xhst + cy[2]*yhst
