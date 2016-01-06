@@ -543,7 +543,7 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
 def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
-    #spaitally sigma trim the positions
+    #spatially sigma trim the positions
     match_trim.sig_trim_ref(initial_data)
     #now fit the distortion
     ref_base = 'Nref_leg'+str(order)
@@ -701,7 +701,33 @@ def calc_err(lis_trans='trans.lis'):
 
     np.save('dx.npy', distx)
     np.save('dy.npy', disty)
+    np.save('lxn.npy', lxn)
+    np.save('lyn.npy', lyn)
     np.save('dxerr.npy', err_x)
     np.save('dyerr.npy', err_y)
 
     return distx, disty, err_x, err_y
+
+
+def calc_chisq(trans_f, pos_f):
+    '''
+    calualtes the chi squared and reduced chi squared for the given data and transformation
+    trans_f, str: filename of the pickled tranfomation object
+    pos_f, str: filename of the sigma clipped data file that was used to generate the tranfoamtion
+    '''
+    t = pickle.load(open(trans_f, 'r'))
+    tab = Table.read(pos_f, format='ascii.fixed_width')
+
+    #compute model measuremtns from fit
+    modx, mody = t.evaluate(tab['x'], tab['y'])
+    datx = tab['xr'] - tab['x']
+    daty = tab['yr'] - tab['y']
+
+    errx = (tab['xerr']**2+tab['xrerr']**2)
+    erry = (tab['yerr']**2+tab['yrerr']**2)
+    chix = np.sum((modx-datx)**2 / errx)
+    chiy = np.sum((mody-daty)**2 / erry)
+    print 'Chi squared X: ', chix
+    print 'Chi squared Y: ', chiy
+    print 'Number of free parameters in X fit', len(t.px.parameters)
+    
