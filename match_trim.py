@@ -903,7 +903,7 @@ def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3):
     plt.axes().set_aspect('equal')
     
     
-def mk_quiver_from_txt(pos_txt='april_pos.txt', title_s='April'):
+def mk_quiver_from_txt(pos_txt='april_pos.txt', title_s='April', color='black'):
 
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     #x, xerr, y, yerr, xr, xrerr, yr, yrerr, name, mag = sig_trim(tab['x'], tab['xerr'], tab['y'], tab['yerr'], tab['xr'], tab['xrerr'], tab['yr'], tab['yrerr'], tab['name'], tab['mag'])
@@ -913,11 +913,12 @@ def mk_quiver_from_txt(pos_txt='april_pos.txt', title_s='April'):
     yr = tab['yr']
     dx = xr - x
     dy = yr -y 
-    q = plt.quiver(x, y, dx, dy, scale = 50)
+    q = plt.quiver(x, y, dx, dy, scale = 50, color=color)
     qk = plt.quiverkey(q,1050, 1050, 2 , '2 pixel', coordinates='data', color='red')
     plt.xlim(-100,1125)
     plt.ylim(-100,1124)
     plt.title(title_s)
+    plt.axes().set_aspect('equal')
     plt.show()    
 
 def mk_quiver_from_txt_dist(t, pos_txt='april_pos.txt', title_s='April Distortion Corrected', scale=50, scale_size=.5):

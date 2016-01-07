@@ -11,7 +11,8 @@ import matplotlib.animation as manimation
 from visvis.vvmovie.images2gif import writeGif
 from scipy.misc import imread
 from distortion_solution import match_trim
-import os 
+import os
+from astropy.io import fits
 
 
 def go(plot=True, trans_file='Nref_leg69.trans'):
@@ -193,7 +194,7 @@ def mk_movie(xl, yl,dxl, dyl, mname='diff_stf_dist.mp4', mag=None, scale=5, scal
     ani.save(mname)
         
 
-def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/april/Nref_leg69.txt', plot=True):
+def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/april/Nref_leg69.txt', plot=True, scale_ref=1):
     '''
     Parameters
     -----------
@@ -240,6 +241,9 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     print 'Mean Error of the Mean Y (N>20, arcseconds):', np.mean(yeom[nbool])
     print 'Mean standard deviation in stack Y (N>20, arcseconds):',np.mean(yerr[nbool])
     print 'Mean standard deviation in stack Y (N>20, brighter than 11, arcseconds):',np.mean(yerr[nbool*(mavg<11)])
+    print' Number of stars with (N >20 and Mag < 11)', np.sum(nbool*(mavg<11))
+    import pdb;pdb.set_trace()
+    
     
     #make plots of EOM
     plt.figure(1)
@@ -481,14 +485,15 @@ def find_trans_from_match_by_name(ref_tab):
     '''
     abuse the fact that I found a mtach once to match by name then calualte a tranfomration
     Then grab the maximum N from tat match*.fits file
-    then, I can use those as initial guesses to align the frames, and find MORE MATCHES!!!!!!!!!!!!!!!
     '''
-
+    
+    ref_Tab =Table.read(ref_f, format='ascii.fixed_width')
     lis_all = Table.read('first_fits_m.lis', format='ascii.no_header')
     lis_mat = lis_all['col2']
     dar_lis = lis_all['col1']
     idlist = []
     translis = []
+    N = []
 
     for i in range(len(lis_mat)):
         tabm = Table.read(lis_mat[i], format='fits')
@@ -500,8 +505,9 @@ def find_trans_from_match_by_name(ref_tab):
         #now create the new name
         idstr = dar_lis[i].split('.fits')[0][-4:]
         idnum = float(idstr)
+        
 
-    
+        import pdb ;pdb.set_trace()
         for kk in range(np.max(tabm['col6'])):
             tnum = idnum+kk
             pre_str = 'c'
@@ -519,25 +525,40 @@ def find_trans_from_match_by_name(ref_tab):
             
             
         
-def trans2data(lis_trans):
+def trans2data(lis_lis='first_fits_m.lis', ref_lis='/Users/service/Distortion_solution/starfinder/april/Nref_leg69.txt', outfile='offsets.dat'):
     #trans_tab = Table.read(lis_trans, format='ascii.no_header')
 
-    scale = []
     offx = []
     offy = []
-    rot = []
+    mat = []
+    
 
-    for i in range(100):
-        t = pickle.load(open(str(i)+'.trans', 'r'))
-        offx.append(t.cx[0])
-        offy.append(t.cy[0])
+    lis_tab = Table.read(lis_lis, format='ascii.no_header')
+    ref = Table.read(ref_lis, format='ascii.fixed_width')
+    xref = ref['Xarc']
+    yref = ref['Yarc']
+    mref = ref['Mag']
+
+    for i in range(len(lis_tab)):
+        cat = Table.read(lis_tab['col2'][i], format='fits')
+        #N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col1'], cat['col3'], cat['col5'], xref, yref, mref, 50)
+
+        #t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+        #xn, yn = t.evaluate(cat['col1'], cat['col3'])
+        #idx1, idx2 , dr, dm = align.match(xn, yn, cat['col2'], xref, yref, mref, .01)
+        id1, id2 = match_trim.match_by_name( cat['col0'], ref['Name'], ret_both=True)
+        #idstf, idhst = match_trim.match_by_name( tabm['col0'], ref_tab['Name'], ret_both=True)
+        t = high_order.four_paramNW(cat['col1'][id1],cat['col3'][id1],xref[id2], yref[id2])
+        offx.append(t.cx[0]*100)
+        offy.append(t.cy[0]*100)
+        mat.append(lis_tab['col2'][i])
 
     offx = np.array(offx)
     offy = np.array(offy)
-    offx = (offx - offx[0]) / .01
-    offy = (offy - offy[0]) / .01
-    outtab = Table(data=[offx, offy], names=['offx', 'offy'])
-    outtab.write('files.dat', format='ascii')
+    offx = (offx - offx[0]) 
+    offy = (offy - offy[0]) 
+    outtab = Table(data=[mat, offx, offy], names=['file', 'offx', 'offy'])
+    outtab.write(outfile, format='ascii.fixed_width')
 
 
 
@@ -571,3 +592,83 @@ def test_iden_align():
     os.remove('dum_test.lis')
 
     #return xall, yall,x, y
+
+
+def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/F814_pix_err.dat.rot'):
+    '''
+    matches stars to HST reference blindly
+    fits 4 parameter tranfoamtiontion
+    matches using that fit
+    fits new 4 parameter tranform
+    print relevant coeficinet to some file somewhere
+    prints filename
+    '''
+
+    lis_tab = Table.read(lis_f, format='ascii.no_header')
+    hst_tab = Table.read(hst_ref, format='ascii')
+    #hst_red = Ta
+    xref = hst_tab['Xarc']
+    yref = hst_tab['Yarc']
+    mref = hst_tab['Mag']
+
+    cx0 = []
+    cx1 = []
+    cx2 = []
+    cy0 = []
+    cy1 = []
+    cy2 = []
+    
+    for i in range(len(lis_tab)):
+        cat = Table.read(lis_tab['col1'][i], format='ascii.no_header')
+        N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xref, yref, mref, 50)
+        
+        if N < 9:
+            N, x1m, y1m, m1m, x2m, y2m, m2m = match_trim.search_for_mat(hst_tab, cat)
+        if N > 4:
+            t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+            xn, yn = t.evaluate(cat['col4'], cat['col5'])
+        
+            idx1 , idx2 , dm, dr = align.match(xn, yn ,cat['col2'],  xref, yref, mref, 1)
+            if len(idx1) > 5:
+                t = high_order.four_paramNW(cat['col4'][idx1], cat['col5'][idx1], xref[idx2] , yref[idx2])
+                cx0.append(t.cx[0])
+                cx1.append(t.cx[1])
+                cx2.append(t.cx[2])
+                cy0.append(t.cy[0])
+                cy1.append(t.cy[1])
+                cy2.append(t.cy[2])
+
+    outtab = Table(data=[cx0,cx1,cx2,cy0,cy1,cy2], names=['cx0','cx1','cx2','cy0','cy1','cy2'])
+    outtab.write('trans_all.txt', format='ascii.fixed_width')
+        
+        
+        
+def det_scale_rot(trans_all_f):
+    '''
+    determines global scale and rotation form all images
+    '''
+
+    trans = Table.read(trans_all_f, format='ascii.fixed_width')
+    s = (trans['cx1']**2 + trans['cx2']**2)**0.5
+    sglob = .0497248 *np.mean(s) * 10**3
+    serr= .0497248 * np.std(s) * 10**3
+
+    print 'plate scale and err in mas' , sglob, serr
+    #need the Nirc2 PA for each images
+    fits_tab = Table.read('darn.lis', format='ascii.no_header')
+    pa = []
+    #tang = np.zeros(len(trans['cx2']))
+    for i in range(len(fits_tab)-1):
+        tmp = fits.open(fits_tab['col1'][i])
+        pa.append(tmp[0].header['ROTPOSN'])
+    pa = np.array(pa)
+        
+    tang = np.rad2deg(np.arctan(trans['cx2']/trans['cx1']))
+    angdiff = pa + tang
+    print np.mean(angdiff)
+    print np.std(angdiff)
+    return angdiff
+        
+    
+
+    

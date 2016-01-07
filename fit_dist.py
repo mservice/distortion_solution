@@ -16,6 +16,8 @@ from nirc2.reduce.dar import *
 from jlu.util import statsIter
 import pickle
 from distortion_solution import match_trim
+from scipy.stats import f as fdist
+from scipy.integrate import quad
 
 
 
@@ -708,12 +710,54 @@ def calc_err(lis_trans='trans.lis'):
 
     return distx, disty, err_x, err_y
 
-
-def calc_chisq(trans_f, pos_f):
+def plot_err(xerr_f='dxerr.npy', yerr_f='dyerr.npy'):
     '''
-    calualtes the chi squared and reduced chi squared for the given data and transformation
+    plots the errors from the bootsrtap analysis
+    '''
+    xerr = np.load(xerr_f)
+    yerr = np.load(yerr_f)
+
+    llim = 0
+    ulim = .3
+    plt.figure(1)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty (X)')
+    plt.xlabel('X (pix)')
+    plt.ylabel('Y (pix)')
+    plt.gray()
+    plt.imshow(xerr, vmin=llim, vmax=ulim)
+    cbar = plt.colorbar()
+    cbar.set_label('X error (pix)', rotation=270, labelpad =+25)
+    plt.axes().set_aspect('equal')
+
+    plt.figure(2)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty (Y)')
+    plt.xlabel('X (pix)')
+    plt.ylabel('Y (pix)')
+    plt.gray()
+    plt.imshow(yerr, vmin=llim, vmax=ulim)
+    cbar = plt.colorbar()
+    cbar.set_label('Y error (pix)', rotation=270, labelpad =+25)
+    plt.axes().set_aspect('equal')
+
+    #make histogram of uncertainties
+    plt.figure(3)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty')
+    plt.xlabel('Error (pix)')
+    plt.ylabel('N')
+    plt.hist(xerr.flatten(), histtype='step', bins=30, range=(0,.25), label='x', lw=3, normed=True,  color='red')
+    plt.hist(yerr.flatten(),histtype='step', bins=30, range=(0,.25), label='y', lw=3, normed=True, linestyle='dashed',color='blue')
+    plt.legend(loc='upper right')
+    #plt.axes().set_aspect('equal')
+
+def calc_chisq(trans_f, pos_f, add_err=.1):
+    '''
+    calculates the chi squared and reduced chi squared for the given data and transformation
     trans_f, str: filename of the pickled tranfomation object
     pos_f, str: filename of the sigma clipped data file that was used to generate the tranfoamtion
+    add_Err is the additive error term added to the error when computing chi-square (default is 1 mas)
     '''
     t = pickle.load(open(trans_f, 'r'))
     tab = Table.read(pos_f, format='ascii.fixed_width')
@@ -723,11 +767,51 @@ def calc_chisq(trans_f, pos_f):
     datx = tab['xr'] - tab['x']
     daty = tab['yr'] - tab['y']
 
-    errx = (tab['xerr']**2+tab['xrerr']**2)
-    erry = (tab['yerr']**2+tab['yrerr']**2)
+    errx = (tab['xerr']**2+tab['xrerr']**2+add_err**2)
+    erry = (tab['yerr']**2+tab['yrerr']**2+add_err**2)
     chix = np.sum((modx-datx)**2 / errx)
     chiy = np.sum((mody-daty)**2 / erry)
-    print 'Chi squared X: ', chix
-    print 'Chi squared Y: ', chiy
+    print 'reduced Chi square X: ', chix / len(t.px.parameters)
+    print 'reduced Chi square Y: ', chiy / len(t.px.parameters)
     print 'Number of free parameters in X fit', len(t.px.parameters)
+
+    return chix, chiy,  len(t.px.parameters)
+
+def calc_prob(trans_lis, pos_lis, add_err=.1):
+    '''
+    '''
+
+    chix = []
+    chiy = []
+    nfree = []
+    
+    for i in range(len(trans_lis)):
+        cx, cy, nf = calc_chisq(trans_lis[i], pos_lis[i], add_err=add_err)
+        chix.append(cx)
+        chiy.append(cy)
+        nfree.append(nf)
+
+        
+    probx = []
+    proby = []
+    for i in range(len(chix)-1):
+        #now , need to integrate the f-distribution from ratio of chi-squares to infinity
+        ratx = ((chix[i]/nfree[i]) - (chix[i+1]/nfree[i+1])) /  (chix[i+1]/nfree[i+1])
+        raty = ((chiy[i]/nfree[i]) - (chiy[i+1]/nfree[i+1])) /  (chiy[i+1]/nfree[i+1])
+        #import pdb;pdb.set_trace()
+        tmpx = 1.0-quad(fdist.pdf , ratx, np.inf, args=(nfree[i], nfree[i+1]))[0]
+        tmpy = 1.0-quad(fdist.pdf , raty, np.inf, args=(nfree[i], nfree[i+1]))[0]
+        probx.append(tmpx)
+        proby.append(tmpy)
+
+    return probx, proby, nfree, chix, chiy
+        
+
+    
+        
+        
+    
+    
+    
+
     
