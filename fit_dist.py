@@ -594,7 +594,7 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst
         #now we have a new distortion solution, so we return to step 1
 
 
-def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100, double=False):
+def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100, double=False):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
     #now fit the distortion
@@ -775,7 +775,7 @@ def calc_chisq(trans_f, pos_f, add_err=.1):
     print 'reduced Chi square Y: ', chiy / len(t.px.parameters)
     print 'Number of free parameters in X fit', len(t.px.parameters)
 
-    return chix, chiy,  len(t.px.parameters)
+    return chix, chiy,  len(t.px.parameters), len(datx)
 
 def calc_prob(trans_lis, pos_lis, add_err=.1):
     '''
@@ -783,28 +783,32 @@ def calc_prob(trans_lis, pos_lis, add_err=.1):
 
     chix = []
     chiy = []
-    nfree = []
+    npar = []
+    ndata = []
     
     for i in range(len(trans_lis)):
-        cx, cy, nf = calc_chisq(trans_lis[i], pos_lis[i], add_err=add_err)
+        cx, cy, npart, ndatat = calc_chisq(trans_lis[i], pos_lis[i], add_err=add_err)
         chix.append(cx)
         chiy.append(cy)
-        nfree.append(nf)
+        npar.append(npart)
+        ndata.append(ndatat)
 
         
     probx = []
     proby = []
     for i in range(len(chix)-1):
         #now , need to integrate the f-distribution from ratio of chi-squares to infinity
-        ratx = ((chix[i]/nfree[i]) - (chix[i+1]/nfree[i+1])) /  (chix[i+1]/nfree[i+1])
-        raty = ((chiy[i]/nfree[i]) - (chiy[i+1]/nfree[i+1])) /  (chiy[i+1]/nfree[i+1])
+        ratx = ((chix[i]) - (chix[i+1])) / (npar[i+1]-npar[i]) /  (chix[i+1]/(ndata[i]-npar[i+1]))
+        raty = ((chiy[i]) - (chiy[i+1])) / (npar[i+1]-npar[i]) /  (chiy[i+1]/(ndata[i]-npar[i+1]))
+    
+        #raty = ((chiy[i]/nfree[i]) - (chiy[i+1]/nfree[i+1])) /  (chiy[i+1]/nfree[i+1])
         #import pdb;pdb.set_trace()
-        tmpx = 1.0-quad(fdist.pdf , ratx, np.inf, args=(nfree[i], nfree[i+1]))[0]
-        tmpy = 1.0-quad(fdist.pdf , raty, np.inf, args=(nfree[i], nfree[i+1]))[0]
+        tmpx = 1.0-quad(fdist.pdf , ratx, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
+        tmpy = 1.0-quad(fdist.pdf , raty, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
         probx.append(tmpx)
         proby.append(tmpy)
 
-    return probx, proby, nfree, chix, chiy
+    return probx, proby,  chix, chiy
         
 
     
