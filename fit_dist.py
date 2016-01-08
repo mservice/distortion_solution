@@ -594,7 +594,7 @@ def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst
         #now we have a new distortion solution, so we return to step 1
 
 
-def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../M53_F814W/F814_pix_err.dat.rot', plot=False, boot_trials=100, double=False):
+def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../F814_pix_err.dat.rot', plot=False, boot_trials=100, double=False):
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
     #now fit the distortion
