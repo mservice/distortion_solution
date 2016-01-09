@@ -799,7 +799,7 @@ def calc_prob(trans_lis, pos_lis, add_err=0):
 
     chix = np.array(chix)
     chiy = np.array(cjiy)
-    ndata = 
+    ndata = np.array(ndata)
         
     probx = []
     proby = []
