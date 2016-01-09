@@ -633,6 +633,10 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
             match_trim.mk_reference_leg(tab_match['col2'],tab_match['col1'], hst, tn, outfile_pre=run_base+str(i))
             #now need new data table, based on the new reference
             match_trim.match_and_write2(reffile=run_base+str(i)+'.txt',outfile=data_base+str(i)+'.txt')
+            #now trim down to the stars that were randomly selected previosly
+            tmptab = Table.read(data_base+str(i)+'.txt', format='ascii.fixed_width')
+            newtab = tmptab[rand_bool]
+            newtab.write(data_base+str(i)+'.txt', format='ascii.fixed_width')
             #created a new reference, need to sigma trim it
             match_trim.sig_trim_ref(data_base+str(i)+'.txt')
             #now can fit distortion using this as the reference
@@ -752,7 +756,7 @@ def plot_err(xerr_f='dxerr.npy', yerr_f='dyerr.npy'):
     plt.legend(loc='upper right')
     #plt.axes().set_aspect('equal')
 
-def calc_chisq(trans_f, pos_f, add_err=.1):
+def calc_chisq(trans_f, pos_f, add_err=0):
     '''
     calculates the chi squared and reduced chi squared for the given data and transformation
     trans_f, str: filename of the pickled tranfomation object
@@ -777,7 +781,7 @@ def calc_chisq(trans_f, pos_f, add_err=.1):
 
     return chix, chiy,  len(t.px.parameters), len(datx)
 
-def calc_prob(trans_lis, pos_lis, add_err=.1):
+def calc_prob(trans_lis, pos_lis, add_err=0):
     '''
     '''
 
@@ -793,6 +797,9 @@ def calc_prob(trans_lis, pos_lis, add_err=.1):
         npar.append(npart)
         ndata.append(ndatat)
 
+    chix = np.array(chix)
+    chiy = np.array(cjiy)
+    ndata = 
         
     probx = []
     proby = []
