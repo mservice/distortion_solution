@@ -594,22 +594,25 @@ def test_iden_align():
     #return xall, yall,x, y
 
 
-def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/F814_pix_err.dat.rot'):
+def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/apr_all_lim_MATCHUP.XYMEEE.1'):
     '''
     matches stars to HST reference blindly
     fits 4 parameter tranfoamtiontion
     matches using that fit
     fits new 4 parameter tranform
-    print relevant coeficinet to some file somewhere
+    print relevant coeficient to some file somewhere
     prints filename
+
+    #hst_ref='/Users/service/M53_F814W/F814_pix_err.dat.rot'
+    hst_ref='/Users/service/M53_F814W/aprMATCHUP.XYMEEE.1psfsty.rot'
     '''
 
     lis_tab = Table.read(lis_f, format='ascii.no_header')
     hst_tab = Table.read(hst_ref, format='ascii')
     #hst_red = Ta
-    xref = hst_tab['Xarc']
-    yref = hst_tab['Yarc']
-    mref = hst_tab['Mag']
+    xref = hst_tab['col1']
+    yref = hst_tab['col2']
+    mref = hst_tab['col3']
 
     cx0 = []
     cx1 = []
@@ -617,18 +620,22 @@ def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/F814_pix_err.da
     cy0 = []
     cy1 = []
     cy2 = []
+    lis_used = []
+    ind1_used = []
+    ind2_used = []
     
     for i in range(len(lis_tab)):
         cat = Table.read(lis_tab['col1'][i], format='ascii.no_header')
         N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xref, yref, mref, 50)
-        
-        if N < 9:
-            N, x1m, y1m, m1m, x2m, y2m, m2m = match_trim.search_for_mat(hst_tab, cat)
+        #import pdb;pdb.set_trace()
+        #if N < 9:
+        #    N, x1m, y1m, m1m, x2m, y2m, m2m = match_trim.search_for_mat(hst_tab, cat)
         if N > 4:
             t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
             xn, yn = t.evaluate(cat['col4'], cat['col5'])
         
             idx1 , idx2 , dm, dr = align.match(xn, yn ,cat['col2'],  xref, yref, mref, 1)
+            
             if len(idx1) > 5:
                 t = high_order.four_paramNW(cat['col4'][idx1], cat['col5'][idx1], xref[idx2] , yref[idx2])
                 cx0.append(t.cx[0])
@@ -637,12 +644,19 @@ def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/F814_pix_err.da
                 cy0.append(t.cy[0])
                 cy1.append(t.cy[1])
                 cy2.append(t.cy[2])
+                #also create file list of file used
+                lis_used.append(lis_tab['col1'][i])
+                ind1_used.append(idx1)
+                ind2_used.append(idx2)
+                
 
     outtab = Table(data=[cx0,cx1,cx2,cy0,cy1,cy2], names=['cx0','cx1','cx2','cy0','cy1','cy2'])
     outtab.write('trans_all.txt', format='ascii.fixed_width')
+    outlis = Table(data=[lis_used])
+    outlis.write('trans_lis.lis', format='ascii.no_header')
         
         
-        
+    return ind1_used, ind2_used, lis_used
 def det_scale_rot(trans_all_f):
     '''
     determines global scale and rotation form all images
@@ -655,20 +669,58 @@ def det_scale_rot(trans_all_f):
 
     print 'plate scale and err in mas' , sglob, serr
     #need the Nirc2 PA for each images
-    fits_tab = Table.read('darn.lis', format='ascii.no_header')
+    fits_tab = Table.read('trans_lis.lis', format='ascii.no_header')
     pa = []
     #tang = np.zeros(len(trans['cx2']))
-    for i in range(len(fits_tab)-1):
-        tmp = fits.open(fits_tab['col1'][i])
-        pa.append(tmp[0].header['ROTPOSN'])
+    for i in range(len(fits_tab)):
+        _fitsname = fits_tab['col1'][i].replace('c0','/Users/service/Distortion_solution/Data/may/cd0')
+        _fitsname = _fitsname.replace('_0.8_stf.lis', '.fits')
+        tmp = fits.open(_fitsname)
+        pa.append(tmp[0].header['ROTPOSN'] - tmp[0].header['INSTANGL'])
     pa = np.array(pa)
         
     tang = np.rad2deg(np.arctan(trans['cx2']/trans['cx1']))
     angdiff = pa + tang
     print np.mean(angdiff)
     print np.std(angdiff)
-    return angdiff
+    return angdiff, s
         
     
 
+    
+def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms_named.lis', mag_cut=14.5)
+
+    
+    #first print out mean errors
+    lis1 = Table.read(pa1, format='ascii.no_header')
+    lis2 = Table.read(pa2, format='ascii.no_header')
+
+    mcut1 = lis1['mag'] < mag_cut
+    mcut2 = lis2['mag'] < mag_cut
+    print 'mean psotional errors from '+pa1+'X then Y, brighter than '+str(mag_cut), np.mean(lis1['xerr'][mcut1]) , np.mean(lis1['xerr'][mcut1])
+    print 'mean psotional errors from '+pa2+'X then Y, brighter than '+str(mag_cut), np.mean(lis2['xerr'][mcut2]) , np.mean(lis2['xerr'][mcut2])
+    
+    
+
+    #now match the two starlists
+    N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(lis1['x'], lis1['y'], lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], 50)
+    t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+    xn, yn = t.evaluate(lis1['x'], lis1['y'])
+    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'],dm_tol=1, .2)
+    #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
+    mc1 = lis1['mag'][idx1] < mag_cut
+    #mc2 = lis2['mag'][idx2] < mag_cut
+    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1], lis2['y'][idx2][mc1])
+
+    xn, yn = t.evaluate(lis1['x'], lis1['y'])
+    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] , dm_tol=1, .2)
+    mc1 = lis1['mag'][idx1] < mag_cut
+    #mc2 = lis2['mag'][idx2] < mag_cut
+
+    #now compute error statistic
+    denomx = np.sum(xn[idx1][mc1] - lis2['x'][idx2][mc1])
+    sigx = np.sqrt(0.5 * denom / (np.sum(mc1) -1) - 0.5 * (lis1['xerr'][idx1][mc1]**2 + lis2['xerr'][idx2][mc1]**2))
+
+    denomy = np.sum(yn[idx1][mc1] - lis2['y'][idx2][mc1])
+    sigy = np.sqrt(0.5 * denom / (np.sum(mc1) -1) - 0.5 * (lis1['yerr'][idx1][mc1]**2 + lis2['yerr'][idx2][mc1]**2))
     
