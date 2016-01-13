@@ -697,8 +697,8 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
 
     mcut1 = lis1['mag'] < mag_cut
     mcut2 = lis2['mag'] < mag_cut
-    print 'mean psotional errors from '+pa1+'X then Y, brighter than '+str(mag_cut), np.mean(lis1['xerr'][mcut1]) , np.mean(lis1['xerr'][mcut1])
-    print 'mean psotional errors from '+pa2+'X then Y, brighter than '+str(mag_cut), np.mean(lis2['xerr'][mcut2]) , np.mean(lis2['xerr'][mcut2])
+    print 'mean psotional errors from '+pa1+'X then Y, brighter than '+str(mag_cut), np.mean(lis1['xerr'][mcut1]) , np.mean(lis1['yerr'][mcut1])
+    print 'mean psotional errors from '+pa2+'X then Y, brighter than '+str(mag_cut), np.mean(lis2['xerr'][mcut2]) , np.mean(lis2['yerr'][mcut2])
     
     
 
@@ -719,8 +719,8 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
 
     #now compute error statistic
     denomx = np.sum(xn[idx1][mc1] - lis2['x'][idx2][mc1])
-    sigx = np.sqrt(0.5 * denom / (np.sum(mc1) -1) - 0.5 * (lis1['xerr'][idx1][mc1]**2 + lis2['xerr'][idx2][mc1]**2))
+    sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (lis1['xerr'][idx1][mc1]**2 + lis2['xerr'][idx2][mc1]**2))
 
     denomy = np.sum(yn[idx1][mc1] - lis2['y'][idx2][mc1])
-    sigy = np.sqrt(0.5 * denom / (np.sum(mc1) -1) - 0.5 * (lis1['yerr'][idx1][mc1]**2 + lis2['yerr'][idx2][mc1]**2))
+    sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (lis1['yerr'][idx1][mc1]**2 + lis2['yerr'][idx2][mc1]**2))
     
