@@ -8,7 +8,7 @@ import numpy as np
 from nirc2.reduce.dar import nirc2dar
 import math
 import matplotlib.animation as manimation
-from visvis.vvmovie.images2gif import writeGif
+#from visvis.vvmovie.images2gif import writeGif
 from scipy.misc import imread
 from distortion_solution import match_trim
 import os
