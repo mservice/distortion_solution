@@ -692,8 +692,8 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
 
     
     #first print out mean errors
-    lis1 = Table.read(pa1, format='ascii.no_header')
-    lis2 = Table.read(pa2, format='ascii.no_header')
+    lis1 = Table.read(pa1, format='ascii.commented_header')
+    lis2 = Table.read(pa2, format='ascii.commented_header')
 
     mcut1 = lis1['mag'] < mag_cut
     mcut2 = lis2['mag'] < mag_cut
