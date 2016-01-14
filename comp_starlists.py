@@ -726,6 +726,7 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     denomy = np.sum((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)
 
     if not set_err:
+        print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis2['xerr'][idx2][mc1]),np.mean(lis1['yerr'][idx1][mc1], np.mean(lis2['yerr'][idx2][mc1])
         sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
         sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
     else:
