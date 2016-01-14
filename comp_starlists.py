@@ -713,10 +713,10 @@ def test_yelda(pa2='mag07maylgs_kp_rms.lis', pa1='mag07maylgs_tran4_kp_rms.lis',
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .2,dm_tol=1)
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
-    import pdb;pdb.set_trace()
+    #import pdb;pdb.set_trace()
     mc1 = lis1['mag'][idx1] < mag_cut
     #mc2 = lis2['mag'][idx2] < mag_cut
-    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1],lis1['y'][idx1][mc1], lis2['y'][idx2][mc1])
+    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1],lis2['y'][idx2][mc1])
 
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] ,  .2, dm_tol=1)
