@@ -739,7 +739,7 @@ def test_yelda(pa2='mag07maylgs_kp_rms.lis', pa1='mag07maylgs_tran4_kp_rms.lis',
     if plot:
         #make quiver plot of matche differences
         plt.figure(19)
-        match_trim.mk_quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lic2['y'][idx2][mc1])
+        match_trim.mk_quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lis2['y'][idx2][mc1])
         plt.savefig('pa_diff_quiver.png')
             
     return sigx, sigy
