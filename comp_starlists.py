@@ -730,8 +730,8 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     if ind_err:
         print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis1['yerr'][idx1][mc1]),np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis2['yerr'][idx2][mc1])
         #need to redo sum, but subtract positional error on a per star basis
-        sigx = (0.5 * np.sum((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)/(Nstars-1) -lis1['xerr'][idx1][mc1]**2 - lis2['xerr'][idx2][mc1]**2 )**0.5
-        sigy = (0.5 * np.sum((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)/(Nstars-1) -lis1['yerr'][idx1][mc1]**2 - lis2['yerr'][idx2][mc1]**2 )**0.5
+        sigx = (0.5 * np.sum(((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)/(Nstars-1) -lis1['xerr'][idx1][mc1]**2 - lis2['xerr'][idx2][mc1]**2 ))**0.5
+        sigy = (0.5 * np.sum(((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)/(Nstars-1) -lis1['yerr'][idx1][mc1]**2 - lis2['yerr'][idx2][mc1]**2 ))**0.5
         
     elif not set_err:
         print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis1['yerr'][idx1][mc1]),np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis2['yerr'][idx2][mc1])
