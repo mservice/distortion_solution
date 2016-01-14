@@ -736,7 +736,8 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
         
     elif not set_err:
         print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis1['yerr'][idx1][mc1]),np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis2['yerr'][idx2][mc1])
-        sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
+        #sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
+        sigx = np.sqrt( denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
         sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
     else:
         #here, set positional errors to those quoted by Yelda 2010
