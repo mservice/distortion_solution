@@ -724,15 +724,15 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     #now compute error statistic
     denomx = np.sum((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)
     denomy = np.sum((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)
-
+    Nstars = lxn[idx1][mc1]
     if not set_err:
         print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis1['yerr'][idx1][mc1]), np.mean(lis2['yerr'][idx2][mc1])
-        sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
-        sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
+        sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
+        sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
     else:
         #here, set positional errors to those quoted by Yelda 2010
-        sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (0.013**2 + 0.018**2))
-        sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (0.013**2 + 0.018**2))
+        sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (0.013**2 + 0.018**2))
+        sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (0.013**2 + 0.018**2))
 
         
     return sigx, sigy
@@ -772,6 +772,7 @@ def test_yelda_orig(pa1='/g/lu/data/gc/07maylgs/yelda_combo/starfinder/mag07mayl
     #mc2 = lis2['mag'][idx2] < mag_cut
 
     #now compute error statistic
+    print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis1['yerr'][idx1][mc1]), np.mean(lis2['yerr'][idx2][mc1])
     denomx = np.sum((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)
     sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
 
