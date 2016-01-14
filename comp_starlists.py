@@ -689,7 +689,7 @@ def det_scale_rot(trans_all_f):
     
 
     
-def test_yelda(pa2='mag07maylgs_kp_rms.lis', pa1='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5, set_err=False, plot=True):
+def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5, set_err=False, plot=True):
 
     
     #first print out mean errors
