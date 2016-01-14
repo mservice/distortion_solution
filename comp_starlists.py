@@ -748,7 +748,7 @@ def test_yelda_orig(pa1='/g/lu/data/gc/07maylgs/yelda_combo/starfinder/mag07mayl
     #now match the two starlists
     N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(lis1['x'], lis1['y'], lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], 50)
     t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
-    print 'angle between images is ', np.rad2deg(np.arctan(t.cx2/t.cx1))
+    print 'angle between images is ', np.rad2deg(np.arctan(t.cx[2]/t.cx[1]))
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .2,dm_tol=1)
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
