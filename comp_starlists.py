@@ -688,7 +688,7 @@ def det_scale_rot(trans_all_f):
     
 
     
-def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5):
+def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5, set_err=False):
 
     
     #first print out mean errors
@@ -699,6 +699,7 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     mcut2 = lis2['mag'] < mag_cut
     print 'mean psotional errors from '+pa1+'X then Y, brighter than '+str(mag_cut), np.mean(lis1['xerr'][mcut1]) , np.mean(lis1['yerr'][mcut1])
     print 'mean psotional errors from '+pa2+'X then Y, brighter than '+str(mag_cut), np.mean(lis2['xerr'][mcut2]) , np.mean(lis2['yerr'][mcut2])
+    
     errx1 = np.mean(lis1['xerr'][mcut1])
     erry1 = np.mean(lis1['yerr'][mcut1])
     
@@ -707,6 +708,7 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     #now match the two starlists
     N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(lis1['x'], lis1['y'], lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], 50)
     t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+    print 'angle between images is ', np.rad2deg(np.arctan(t.cx[2]/t.cx[1]))
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .2,dm_tol=1)
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
@@ -721,10 +723,17 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
 
     #now compute error statistic
     denomx = np.sum((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)
-    sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
-
     denomy = np.sum((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)
-    sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
+
+    if not set_err:
+        sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
+        sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
+    else:
+        #here, set positional errors to those quoted by Yelda 2010
+        sigx = np.sqrt(0.5 * denomx / (np.sum(mc1) -1) - 0.5 * (0.013**2 + 0.018**2))
+        sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (0.013**2 + 0.018**2))
+
+        
     return sigx, sigy
     
 
