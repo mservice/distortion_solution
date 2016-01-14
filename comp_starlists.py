@@ -13,6 +13,7 @@ from scipy.misc import imread
 from distortion_solution import match_trim
 import os
 from astropy.io import fits
+from distortion_solution import match_trim
 
 
 def go(plot=True, trans_file='Nref_leg69.trans'):
@@ -688,7 +689,7 @@ def det_scale_rot(trans_all_f):
     
 
     
-def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5, set_err=False):
+def test_yelda(pa2='mag07maylgs_kp_rms.lis', pa1='mag07maylgs_tran4_kp_rms.lis', mag_cut=14.5, set_err=False, plot=True):
 
     
     #first print out mean errors
@@ -714,7 +715,7 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
     mc1 = lis1['mag'][idx1] < mag_cut
     #mc2 = lis2['mag'][idx2] < mag_cut
-    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1], lis2['y'][idx2][mc1])
+    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1],lis1['y'][idx1][mc1], lis2['y'][idx2][mc1])
 
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] ,  .2, dm_tol=1)
@@ -726,7 +727,7 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     denomy = np.sum((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)
     Nstars = len(xn[idx1][mc1])
     if not set_err:
-        print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis1['yerr'][idx1][mc1]), np.mean(lis2['yerr'][idx2][mc1])
+        print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis1['yerr'][idx1][mc1]),np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis2['yerr'][idx2][mc1])
         sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
         sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
     else:
@@ -734,7 +735,13 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
         sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (0.013**2 + 0.018**2))
         sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (0.013**2 + 0.018**2))
 
-        
+
+    if plot:
+        #make quiver plot of matche differences
+        plt.figure(19)
+        match_trim.mk_quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lic2['y'][idx2][mc1])
+        plt.savefig('pa_diff_quiver.png')
+            
     return sigx, sigy
     
 
