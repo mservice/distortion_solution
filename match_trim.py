@@ -18,7 +18,7 @@ from astropy.io import fits
 
 def match2hst(lis_f, hst_tab_ref, hst_tab_red):
     '''
-    lis_f is the name of the text file catalog of nirc2 positi
+    lis_f is the name of the text file catalog of nirc2 positions
     matches the lis file from Starfinder with the HST reference
     uses the fact that the first star is in the HST Reference (by name) to trim down the Stars from HST for matching
     Note: the HST coordiantes for this are not DAR corrected
@@ -590,6 +590,7 @@ def search_for_mat(hst,stf,fac=1, num=50):
     bins_y = int((np.max(hst['Yarc'])-np.min(hst['Yarc']))/fov)
     xr = np.linspace(np.min(hst['Xarc']),np.max(hst['Xarc']),num=bins_x)
     yr = np.linspace(np.min(hst['Yarc']),np.max(hst['Yarc']),num=bins_y)
+    #import pdb;pdb.set_trace()
 
     for i in range(len(xr)-1):
         for j in range(len(yr)-1):
@@ -636,7 +637,7 @@ def mk_quiver(x,y,dx,dy, title_s='April', scale=50):
     plt.xlim(-100,1125)
     plt.ylim(-100,1124)
     plt.title(title_s)
-    plt.show()    
+    #plt.show()    
     
 
 
@@ -644,7 +645,7 @@ def sig_trim(x,xerr,y,yerr,xref,xreferr,yref,yreferr,names,mag, sig_fac=3 , num_
     '''
     Performs spatial sigma trimming of the Deltas between catalog and reference
     sig_fac is the number of sigma clipped
-    num_Sectio nis the number of sections that each axis is split into, for example num_section=9 means that a 9x9 grid is used
+    num_section is the number of sections that each axis is split into, for example num_section=9 means that a 9x9 grid is used
     other arguements are 1-d array-like
     '''
     
@@ -667,7 +668,7 @@ def sig_trim(x,xerr,y,yerr,xref,xreferr,yref,yreferr,names,mag, sig_fac=3 , num_
     for i in range(len(bins)-1):
         for j in range(len(bins)-1):
             sbool = (x > bins[i])*(x<bins[i+1])*(y>bins[j])*(y<bins[j+1])
-            print 'numer of stars in this section are ', np.sum(sbool)
+            print 'number of stars in this section are ', np.sum(sbool)
             ave_x, sig_x, nclipx = statsIter.mean_std_clip(dx[sbool], clipsig=3.0, return_nclip=True)
             ave_y, sig_y, nclipy = statsIter.mean_std_clip(dy[sbool], clipsig=3.0, return_nclip=True)
             good_bool = (dx < ave_x + sig_fac * sig_x)*(dx > ave_x - sig_fac * sig_x)*(dy < ave_y + sig_fac *sig_x)*(dy > ave_y - sig_fac * sig_x) * sbool
@@ -836,7 +837,7 @@ def plot_distxy(trans, title1='X', title2='Y', outfile=None, show=False):
  
     if show:
         plt.show()
-def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
+def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05, font_size=14, title=''):
     #plt.figure(10)
     plt.clf()
     indices = range(0,1024,spacing)
@@ -851,17 +852,22 @@ def plot_lookup_diff(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
     
     coos = np.meshgrid(indices, indices)
     q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
-    qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixel', coordinates='data', color='red')
+    qk = plt.quiverkey(q,1050, 1050, scale_size , str(scale_size)+' pixels', coordinates='data', color='red')
     plt.xlim(-200,1200)
     plt.ylim(-200,1200)
-    plt.text(700,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
-    plt.text(700,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
+    plt.xlabel('X (pix)', size=font_size)
+    plt.ylabel('Y (pix)', size=font_size)
+    plt.title(title, size=font_size)
+    #plt.text(700,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' pixels')
+    #plt.text(700,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' pixels')
     plt.axes().set_aspect('equal')
 
-def plot_lookup_diff_norm(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05):
+def plot_lookup_diff_norm(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=1):
     #plt.figure(10)
-    xerr = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Xerr_withResidual.fits.gz')[0].data
-    yerr = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Yerr_withResidual.fits.gz')[0].data
+    xerr1 = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Xerr_withResidual.fits.gz')[0].data
+    yerr1 = fits.open('/Users/service/Distortion_solution/Yelda/nirc2_Yerr_withResidual.fits.gz')[0].data
+    xerr2 = np.load(open('dxerr.npy')) + .1
+    yerr2 = np.load(open('dyerr.npy')) + .1
     plt.clf()
     indices = range(0,1024,spacing)
     coos = np.meshgrid(indices, indices)
@@ -870,19 +876,34 @@ def plot_lookup_diff_norm(l1x,l1y, l2x,l2y, spacing=24, scale=1, scale_size=.05)
     
     for i in range(len(indices)):
         for j in range(len(indices)):
-            dx[i,j] = (l1x[indices[i],indices[j]] - l2x[indices[i],indices[j]]) / (np.sqrt(2) * xerr[indices[i], indices[j]])
-            dy[i,j] = (l1y[indices[i],indices[j]] - l2y[indices[i],indices[j]]) / ( np.sqrt(2) * yerr[indices[i], indices[j]])
+            dx[i,j] = (l1x[indices[i],indices[j]] - l2x[indices[i],indices[j]]) / ( xerr1[indices[i], indices[j]]**2 + xerr2[indices[i], indices[j]]**2)**0.5
+            dy[i,j] = (l1y[indices[i],indices[j]] - l2y[indices[i],indices[j]]) / ( yerr1[indices[i], indices[j]]**2 + yerr2[indices[i], indices[j]]**2)**0.5
     
     coos = np.meshgrid(indices, indices)
+    #import pdb;pdb.set_trace()
     q = plt.quiver(coos[0], coos[1], dx, dy, scale = scale)
     qk = plt.quiverkey(q,200, 1100, scale_size , str(scale_size)+' sigma', coordinates='data', color='red')
     plt.xlim(-200,1200)
     plt.ylim(-200,1200)
-    plt.text(400,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' sigma')
-    plt.text(400,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' sigma')
-    plt.axes().set_aspect('equal')
+    plt.text(600,-100,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(dx)))[:5]+' sigma')
+    plt.text(600,-150,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(dy)))[:5]+' sigma')
+    plt.axes().set_aspect('auto')
+
+    #make histogram of difference in units of sigma
+    plt.figure(16)
+    plt.clf()
+    plt.hist(dx.flatten(), bins=25,histtype='step', range=(-2,2),lw=3, color='red', label='x')
+    plt.hist(dy.flatten(), bins=25,histtype='step', range=(-2,2), lw=3, color='blue', label='y', linestyle='dashed')
+    print 'mean dx', np.mean(dx.flatten())
+    print 'mean dy', np.mean(dy.flatten())
+    #plt.title('Residual with Yelda')
+    plt.xlabel(r'$\Delta / \sigma$', fontsize=20)
+     
+    plt.legend(loc='upper right')
+    plt.axes().set_aspect(1.0/22.5)
     
-def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3):
+    
+def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3,title='', font_size=14):
     #plt.figure(10)
     plt.clf()
     indices = range(0,1024,spacing)
@@ -900,6 +921,9 @@ def plot_lookup(lx,ly, spacing=36, scale=20, scale_size=3):
     qk = plt.quiverkey(q,1000, 1030, scale_size , str(scale_size)+' pixels', coordinates='data', color='red')
     plt.xlim(-200,1200)
     plt.ylim(-200,1200)
+    plt.xlabel('X (pix)', size=font_size)
+    plt.ylabel('Y (pix)', size=font_size)
+    plt.title(title, size=font_size)
     plt.axes().set_aspect('equal')
     
     
@@ -914,9 +938,9 @@ def mk_quiver_from_txt(pos_txt='april_pos.txt', title_s='April', color='black'):
     dx = xr - x
     dy = yr -y 
     q = plt.quiver(x, y, dx, dy, scale = 50, color=color)
-    qk = plt.quiverkey(q,1050, 1050, 2 , '2 pixel', coordinates='data', color='red')
+    qk = plt.quiverkey(q,1015, 1030, 2 , '2 pixels', coordinates='data', color='green')
     plt.xlim(-100,1125)
-    plt.ylim(-100,1124)
+    plt.ylim(-100,1125)
     plt.title(title_s)
     plt.axes().set_aspect('equal')
     plt.show()    
@@ -1087,7 +1111,26 @@ def plot_err_on_mean(ref_txt, mcut=10, run=1):
         plt.xlabel('Mag')
         plt.ylabel('Error (arcseconds)')
 
+def plot_err_ref(ref_txt, mcut=10, run=1, ylow=10**-4):
 
+        #takes a reference NIRC2 reference file and plots the error on the mean versuse magnitude 
+        nref = Table.read(ref_txt, format='ascii.fixed_width')
+        #plt.figure(1)
+        plt.clf()
+        eX =  nref['xerr']
+        eY =  nref['yerr']
+
+        mbool = nref['Mag'] < mcut   
+        plt.semilogy(nref['Mag'], eX, 'o', label='x')
+        plt.semilogy(nref['Mag'], eY, 'o', label='y')
+        plt.legend(loc='upper right')
+        plt.title('RMS Error of Stack Pass '+str(run))
+        plt.text(np.min(nref['Mag'])+.5, 10**-2, 'mean error X:'+str(np.mean(eX[mbool])*10**3)+' mas')
+        plt.text(np.min(nref['Mag'])+.5, 5*10**-2, 'mean error Y:'+str(np.mean(eY[mbool])*10**3)+' mas')
+        plt.axvline(mcut)
+        plt.ylim(ylow, 0.1)
+        plt.xlabel('Mag')
+        plt.ylabel('Error (arcseconds)')
 
 
 def writefits2txt(lis_txt):
@@ -1149,3 +1192,17 @@ def plot_diff_ref(reffile1,ids = None, hstfile='../../../M53_F814W/F814_pix_err.
     
 
     return idhst, idn
+
+def plot_pos_err(pos_txt='sig_trimpos_leg65.txt', title_s='Positional Uncertainty'):
+
+    pos = Table.read(pos_txt, format='ascii.fixed_width')
+    #plt.figure(1)
+    plt.clf()
+    plt.xlabel('Positional Uncertainty (pix)', size=14)
+    plt.ylabel('N', size=14)
+    plt.title(title_s, size=14)
+    plt.hist(pos['xerr'], range=(0,.5),  histtype='step', lw=3, label='x', bins=25, ls='dashed')
+    plt.hist(pos['yerr'], range=(0,.5),  histtype='step', lw=3, label='y', bins=25)
+    plt.legend(loc='upper right')
+    plt.show()
+    

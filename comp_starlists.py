@@ -1,7 +1,7 @@
 from astropy.table import Table
 from jlu.astrometry.align import align
 from jlu.astrometry.align import jay
-from jlu.astrometry import high_order_class as high_order
+from jlu.astrometry import Transform2D as high_order
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +13,6 @@ from scipy.misc import imread
 from distortion_solution import match_trim
 import os
 from astropy.io import fits
-from distortion_solution import match_trim
 
 
 def go(plot=True, trans_file='Nref_leg69.trans'):
@@ -100,8 +99,7 @@ def comp_starlists(lis_lis_stf, lis_lis_d, t, dar_lis, rad_tol=1, plot=True, mov
 
         #import pdb; pdb.set_trace()
         
-        #now do matching
-        
+        #now do matching        
         idx1, idx2, dr, dm = align.match(xdar, ydar, tabd['col2'], tabs['col4'], tabs['col5'], tabs['col2'], rad_tol)
         if len(idx1) < 3:
             import pdb; pdb.set_trace()
@@ -195,7 +193,7 @@ def mk_movie(xl, yl,dxl, dyl, mname='diff_stf_dist.mp4', mag=None, scale=5, scal
     ani.save(mname)
         
 
-def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/april/Nref_leg69.txt', plot=True, scale_ref=1):
+def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/april/Nref_leg65.txt', plot=True, scale_ref=1):
     '''
     Parameters
     -----------
@@ -205,22 +203,37 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
         name of the catalog to use as the reference for matching
     plot: Bool
         if True, creates and saves plots of the errors in the stacking.
+    
     '''
 
     lis_tab = Table.read(lis_stf, format='ascii.no_header')
-    ref_tab = Table.read(ref_lis, format='ascii.fixed_width')
+    #ref_tab = Table.read(ref_lis, format='ascii.fixed_width')
+    ref_tab = Table.read(ref_lis, format='ascii')
 
     #use stars from reference, but only those with at least 10 detections
-    nrefbool = ref_tab['N'] > 10
-    xref = ref_tab['Xarc'][nrefbool]
-    yref = ref_tab['Yarc'][nrefbool]
-    mref = ref_tab['Mag'][nrefbool]
+    #nrefbool = ref_tab['N'] > 10
+    #xref = ref_tab['Xarc'][nrefbool]
+    #yref = ref_tab['Yarc'][nrefbool]
+    #mref = ref_tab['Mag'][nrefbool]
+    xref = ref_tab['Xarc']
+    yref = ref_tab['Yarc']
+    mref = ref_tab['Mag']
 
-    xall, yall, mall , d= align_interepoch(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=.01, req_match=1,save_trans=True)
+    xall, yall, mall , d= align_interepoch(xref, yref, mref, lis_str=lis_tab['col1'], dr_tol=1, req_match=1,save_trans=True)
+
+    #now zeropoint the magnitudes to a common scale
+    #import pdb;pdb.set_trace()
+    #for i in range(mall.shape[1]):
+    #    zp = mall[0] - mall[i]
+    #    zp = np.mean(zp)
+    #    mall[i] = mall[i] + zp
+       
 
     #now create averages not includeing the reference for stars with at least 20 measurements
+    import pdb;pdb.set_trace()
     Ninv = np.sum(xall.mask, axis=1)
     N = xall.shape[1] - Ninv
+    
     nbool = N > 20
 
     xavg = np.mean(xall,axis=1)
@@ -242,7 +255,7 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
     print 'Mean Error of the Mean Y (N>20, arcseconds):', np.mean(yeom[nbool])
     print 'Mean standard deviation in stack Y (N>20, arcseconds):',np.mean(yerr[nbool])
     print 'Mean standard deviation in stack Y (N>20, brighter than 11, arcseconds):',np.mean(yerr[nbool*(mavg<11)])
-    print' Number of stars with (N >20 and Mag < 11)', np.sum(nbool*(mavg<11))
+    print' Number of stars with (N >20 and Mag < 11.5)', np.sum(nbool*(mavg<11))
     import pdb;pdb.set_trace()
     
     
@@ -264,6 +277,7 @@ def stack_stf(lis_stf, ref_lis='/Users/service/Distortion_solution/starfinder/ap
 
 def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_order.four_paramNW, dr_tol=.02, lis_str=None, trans_lis=None, req_match=5, params_lis=[], order=1, weights=None, save_trans=False):
     """
+    TEMPORARILY HARD CODED TO DO FOUR PARMATER TRANFORMATION
     Performs alignment of input catalogs to the reference coordiantes.
     Does not account for propoer motions, so it is designed for doing alignment within a single temporal epoch
    
@@ -330,10 +344,11 @@ def align_interepoch(xrefin, yrefin, mrefin, lis_f='lis.lis', trans_model=high_o
         #first triangle match into reference frame
         #import pdb;pdb.set_trace()
         if trans_lis==None:
-            N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xrefin, yrefin, mrefin, 50)
+            N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col4'], cat['col5'], cat['col2'], xrefin, yrefin, mrefin, 60)
             assert len(x1m) > req_match#, 'Failed to find at least '+str(req_match+' matches, giving up'
 
-            t = trans_model(x1m, y1m ,x2m, y2m, order=order, weights=weights)
+            #t = trans_model(x1m, y1m ,x2m, y2m, order=order, weights=weights)
+            t = high_order.four_param(x1m, y1m, x2m, y2m)
             if save_trans:
                 pickle.dump(t, open(str(i)+'.trans', 'w'))
 
@@ -484,8 +499,8 @@ def test_param_with_mat():
             
 def find_trans_from_match_by_name(ref_tab):
     '''
-    abuse the fact that I found a mtach once to match by name then calualte a tranfomration
-    Then grab the maximum N from tat match*.fits file
+    abuse the fact that I found a mtach once to match by name then calualte a transformation
+    Then grab the maximum N from that match*.fits file
     '''
     
     ref_Tab =Table.read(ref_f, format='ascii.fixed_width')
@@ -502,7 +517,7 @@ def find_trans_from_match_by_name(ref_tab):
 
 
         #create the tranfoarmtion objext
-        t = high_order.four_paramNW(tabm['col1'][idstf], tabm['col3'][idstf], ref_tab['Xarc'][idhst], ref_tab['Yarc'][idhst])
+        t = high_order.four_param(tabm['col1'][idstf], tabm['col3'][idstf], ref_tab['Xarc'][idhst], ref_tab['Yarc'][idhst])
         #now create the new name
         idstr = dar_lis[i].split('.fits')[0][-4:]
         idnum = float(idstr)
@@ -544,12 +559,12 @@ def trans2data(lis_lis='first_fits_m.lis', ref_lis='/Users/service/Distortion_so
         cat = Table.read(lis_tab['col2'][i], format='fits')
         #N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(cat['col1'], cat['col3'], cat['col5'], xref, yref, mref, 50)
 
-        #t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+        #t = high_order.four_param(x1m, y1m, x2m, y2m)
         #xn, yn = t.evaluate(cat['col1'], cat['col3'])
         #idx1, idx2 , dr, dm = align.match(xn, yn, cat['col2'], xref, yref, mref, .01)
         id1, id2 = match_trim.match_by_name( cat['col0'], ref['Name'], ret_both=True)
         #idstf, idhst = match_trim.match_by_name( tabm['col0'], ref_tab['Name'], ret_both=True)
-        t = high_order.four_paramNW(cat['col1'][id1],cat['col3'][id1],xref[id2], yref[id2])
+        t = high_order.four_param(cat['col1'][id1],cat['col3'][id1],xref[id2], yref[id2])
         offx.append(t.cx[0]*100)
         offy.append(t.cy[0]*100)
         mat.append(lis_tab['col2'][i])
@@ -611,9 +626,13 @@ def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/apr_all_lim_MAT
     lis_tab = Table.read(lis_f, format='ascii.no_header')
     hst_tab = Table.read(hst_ref, format='ascii')
     #hst_red = Ta
-    xref = hst_tab['col1']
-    yref = hst_tab['col2']
-    mref = hst_tab['col3']
+    #xref = hst_tab['col1']
+    #yref = hst_tab['col2']
+    #mref = hst_tab['col3']
+
+    xref = hst_tab['Xarc']
+    yref = hst_tab['Yarc']
+    mref = hst_tab['Mag']
 
     cx0 = []
     cx1 = []
@@ -631,13 +650,15 @@ def mat2hst(lis_f = 'lis.lis', hst_ref='/Users/service/M53_F814W/apr_all_lim_MAT
         #import pdb;pdb.set_trace()
         #if N < 9:
         #    N, x1m, y1m, m1m, x2m, y2m, m2m = match_trim.search_for_mat(hst_tab, cat)
-        if N > 4:
-            t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
-            xn, yn = t.evaluate(cat['col4'], cat['col5'])
+        if N < 8:
+            N, x1m, y1m, m1m, x2m, y2m, m2m = match_trim.search_for_mat(hst_tab, cat)
+
+        t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+        xn, yn = t.evaluate(cat['col4'], cat['col5'])
         
-            idx1 , idx2 , dm, dr = align.match(xn, yn ,cat['col2'],  xref, yref, mref, 1)
+        idx1 , idx2 , dm, dr = align.match(xn, yn ,cat['col2'],  xref, yref, mref, 1)
             
-            if len(idx1) > 5:
+        if len(idx1) > 5:
                 t = high_order.four_paramNW(cat['col4'][idx1], cat['col5'][idx1], xref[idx2] , yref[idx2])
                 cx0.append(t.cx[0])
                 cx1.append(t.cx[1])
@@ -674,14 +695,15 @@ def det_scale_rot(trans_all_f):
     pa = []
     #tang = np.zeros(len(trans['cx2']))
     for i in range(len(fits_tab)):
-        _fitsname = fits_tab['col1'][i].replace('c0','/Users/service/Distortion_solution/Data/may/cd0')
+        _fitsname = fits_tab['col1'][i].replace('cd0','../../c0')
         _fitsname = _fitsname.replace('_0.8_stf.lis', '.fits')
         tmp = fits.open(_fitsname)
         pa.append(tmp[0].header['ROTPOSN'] - tmp[0].header['INSTANGL'])
     pa = np.array(pa)
         
-    tang = np.rad2deg(np.arctan(trans['cx2']/trans['cx1']))
-    angdiff = pa + tang
+    tang = np.rad2deg(np.arctan2(-1.0 * trans['cx2'], trans['cx1']))
+    angdiff = pa - tang
+    import pdb;pdb.set_trace()
     print np.mean(angdiff)
     print np.std(angdiff)
     return angdiff, s
@@ -708,18 +730,18 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
 
     #now match the two starlists
     N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(lis1['x'], lis1['y'], lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], 50)
-    t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
-    print 'angle between images is ', np.rad2deg(np.arctan(t.cx[2]/t.cx[1]))
+    t = high_order.four_param(x1m, y1m, x2m, y2m)
+    #print 'angle between images is ', np.rad2deg(np.arctan(t.cx[2]/t.cx[1]))
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
-    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .2,dm_tol=1)
+    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .8 ,dm_tol=1.2)
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
     #import pdb;pdb.set_trace()
     mc1 = lis1['mag'][idx1] < mag_cut
     #mc2 = lis2['mag'][idx2] < mag_cut
-    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1],lis2['y'][idx2][mc1])
+    t = high_order.four_param(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1],lis2['y'][idx2][mc1])
 
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
-    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] ,  .2, dm_tol=1)
+    idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] ,  2, dm_tol=1.2)
     mc1 = lis1['mag'][idx1] < mag_cut
     #mc2 = lis2['mag'][idx2] < mag_cut
 
@@ -732,10 +754,11 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
         #need to redo sum, but subtract positional error on a per star basis
         sigx = (0.5 * np.sum(((xn[idx1][mc1] - lis2['x'][idx2][mc1])**2)/(Nstars-1) -lis1['xerr'][idx1][mc1]**2 - lis2['xerr'][idx2][mc1]**2 ))**0.5
         sigy = (0.5 * np.sum(((yn[idx1][mc1] - lis2['y'][idx2][mc1])**2)/(Nstars-1) -lis1['yerr'][idx1][mc1]**2 - lis2['yerr'][idx2][mc1]**2 ))**0.5
-        import pdb;pdb.set_trace()
+        
         
     elif not set_err:
         print 'errors', np.mean(lis1['xerr'][idx1][mc1]), np.mean(lis1['yerr'][idx1][mc1]),np.mean(lis2['xerr'][idx2][mc1]), np.mean(lis2['yerr'][idx2][mc1])
+        print 'number of matched stars brighter then ', mag_cut, ' ', len(idx1[mc1])
         #sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
         sigx = np.sqrt(0.5 * denomx / (Nstars -1) - 0.5 * (np.mean(lis1['xerr'][idx1][mc1])**2 + np.mean(lis2['xerr'][idx2][mc1])**2))
         sigy = np.sqrt(0.5 * denomy / (Nstars -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
@@ -748,8 +771,17 @@ def test_yelda(pa1='mag07maylgs_kp_rms.lis', pa2='mag07maylgs_tran4_kp_rms.lis',
     if plot:
         #make quiver plot of matche differences
         plt.figure(19)
+        #import pdb;pdb.set_trace()
+        plt.clf()
+        #match_trim.mk_quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lis2['y'][idx2][mc1])
+        mc2 = np.invert(mc1)
+        q = plt.quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lis2['y'][idx2][mc1], scale=5)
+        #q = plt.quiver(lis2['x'][idx2][mc2] , lis2['y'][idx2][mc2], xn[idx1][mc2] - lis2['x'][idx2][mc2], yn[idx1][mc2] - lis2['y'][idx2][mc2], scale=5, color='red')
+        qk = plt.quiverkey(q,1050, 1050, 0.5 , '0.5 pix', coordinates='data', color='red')
+        plt.xlim(0,1200)
+        plt.ylim(0,1200)
+        plt.axes().set_aspect('equal')
         import pdb;pdb.set_trace()
-        match_trim.mk_quiver(lis2['x'][idx2][mc1] , lis2['y'][idx2][mc1], xn[idx1][mc1] - lis2['x'][idx2][mc1], yn[idx1][mc1] - lis2['y'][idx2][mc1])
         plt.savefig('pa_diff_quiver.png')
             
     return sigx, sigy
@@ -774,14 +806,14 @@ def test_yelda_orig(pa1='/g/lu/data/gc/07maylgs/yelda_combo/starfinder/mag07mayl
 
     #now match the two starlists
     N, x1m, y1m, m1m, x2m, y2m, m2m = jay.miracle_match_briteN(lis1['x'], lis1['y'], lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], 50)
-    t = high_order.four_paramNW(x1m, y1m, x2m, y2m)
+    t = high_order.four_param(x1m, y1m, x2m, y2m)
     print 'angle between images is ', np.rad2deg(np.arctan(t.cx[2]/t.cx[1]))
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'], .2,dm_tol=1)
     #now recalculate 4 parameter tranformtion based onn more stars, but only bright ones (selected form first list, arbitrarily
     mc1 = lis1['mag'][idx1] < mag_cut
     #mc2 = lis2['mag'][idx2] < mag_cut
-    t = high_order.four_paramNW(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1], lis2['y'][idx2][mc1])
+    t = high_order.four_param(lis1['x'][idx1][mc1], lis1['y'][idx1][mc1], lis2['x'][idx2][mc1], lis2['y'][idx2][mc1])
 
     xn, yn = t.evaluate(lis1['x'], lis1['y'])
     idx1, idx2 , dr, dm = align.match(xn, yn, lis1['mag'], lis2['x'], lis2['y'], lis2['mag'] ,  .2, dm_tol=1)
@@ -797,3 +829,33 @@ def test_yelda_orig(pa1='/g/lu/data/gc/07maylgs/yelda_combo/starfinder/mag07mayl
     sigy = np.sqrt(0.5 * denomy / (np.sum(mc1) -1) - 0.5 * (np.mean(lis1['yerr'][idx1][mc1])**2 + np.mean(lis2['yerr'][idx2][mc1])**2))
     return sigx, sigy
     
+
+
+
+def delt2lis(lis1, lis2):
+
+    tab1 = Table.read(lis1, format='ascii.no_header')
+    tab2 = Table.read(lis2, format='ascii.no_header')
+
+    idx1, idx2, dr, dm = align.match(tab1['col4'], tab1['col5'],  tab1['col2'], tab2['col4'], tab2['col5'],  tab2['col2'], 1)
+    dx = np.mean(tab1['col4'][idx1] - tab2['col4'][idx2])
+    dy = np.mean(tab1['col5'][idx1] - tab2['col5'][idx2])
+    #dx = 0
+    #dy = 0
+
+    xn = tab1['col4'][idx1] - dx
+    yn = tab1['col5'][idx1] - dy
+
+    #import pdb;pdb.set_trace()
+    plt.figure(4)
+    plt.clf()
+    
+    q = plt.quiver(xn , yn , xn - tab2['col4'][idx2], yn - tab2['col5'][idx2], scale=1)
+    qk = plt.quiverkey(q, 1050,1050, 0.05, '0.05 pixels', color='red', coordinates='data')
+    plt.savefig('diff_quiver.png')
+    plt.xlim(-100,1100)
+    plt.ylim(-100,1100)
+    plt.text(800,-50,r'$\langle \mid \Delta_{x} \mid \rangle$:'+str(np.mean(np.abs(xn - tab2['col4'][idx2])))[:5]+' pix')
+    plt.text(800,--75,r'$\langle \mid \Delta_{y} \mid \rangle$:'+str(np.mean(np.abs(yn - tab2['col5'][idx2])))[:5]+' pix')
+    plt.axes().set_aspect('equal')
+    plt.show()

@@ -16,12 +16,12 @@ from nirc2.reduce.dar import *
 from jlu.util import statsIter
 import pickle
 from distortion_solution import match_trim
-from scipy.stats import f as fdist
+from scipy import stats
 from scipy.integrate import quad
+from scipy.stats import f as fdist
 
 
-
-def fit_dist(pos_txt='april_pos.txt', order=6, n_iter_fit=10, nstring=None, lookup=True, poly_type=1, wtype=1):
+def fit_dist(pos_txt='april_pos.txt', order=6, n_iter_fit=1, nstring=None, lookup=True, poly_type=1, wtype=1):
     '''
     fits distortion with legendre polynomial
     weights by the errors added in quadrature for each point (both reerence and Nirc2 errors)
@@ -274,11 +274,11 @@ def search_smooth_spline(pos_txt='april_pos.txt'):
 
 def find_best_fit_spline(yeldax, yelday , pos_txt='sig_trimapril_pos.txt', wtype=3):
     '''
-    go throigh orfer of legendre polynomial
+    go throigh order of legendre polynomial
     look at residuals / errors
     Fit with gaussian with sigma of 1
     measure chi squared
-    print those number on a plot, call it a day
+    print those numbers on a plot, call it a day
     '''
 
     #num_knots = range(2,10)
@@ -377,7 +377,7 @@ def find_best_fit_spline(yeldax, yelday , pos_txt='sig_trimapril_pos.txt', wtype
 
 def find_best_fit(yeldax, yelday , plot_look=False, pos_txt='sig_trimapril_pos.txt', errtype=1, fitter=None):
     '''
-    go throigh orfer of legendre polynomial
+    go throigh order of legendre polynomial
     look at residuals / errors
     Fit with gaussian with sigma of 1
     measure chi squared
@@ -464,7 +464,7 @@ def find_best_fit(yeldax, yelday , plot_look=False, pos_txt='sig_trimapril_pos.t
 
 def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
     '''
-    goes through successive orders of legendre polynomial and compare the results for fitting the yelda data to the final Yelada sidtortin map
+    goes through successive orders of legendre polynomial and compare the results for fitting the yelda data to the final Yelada distortion map
     '''
 
     for i in range(3,8):
@@ -543,6 +543,9 @@ def comp_yelda(yeldax, yelday , yelda_pos='yelda_pos.txt'):
        
 
 def iter_sol_leg(order, iter=5, initial_data = 'april_pos.txt', pref_app='', hst_file='../../../M53_F814W/F814_pix_err.dat.rot', plot=False):
+    '''
+    This is the function that produces the final distortion solution 
+    '''
     #wrapper to go through successive fits with Legendre polynomials, create new references and make a few plots
     
     #spatially sigma trim the positions
@@ -661,7 +664,7 @@ def iter_sol_leg_boot(order, iter=5, initial_data = 'april_pos.txt', pref_app=''
         f= open(run_base+str(i)+'_'+str(bb)+'.trans', 'w')
 
 def iter_plots( dx, dy, pos_txt, pref):
-    #first want quiver plot of the residuals wrt data
+    #first want quivera plot of the residuals wrt data
     tab = Table.read(pos_txt, format='ascii.fixed_width')
     plt.figure(1)
     plt.clf()
@@ -679,6 +682,19 @@ def iter_plots( dx, dy, pos_txt, pref):
     plt.legend(loc='upper right')
     plt.savefig(pref+'hist_resid.png')
 
+def plot_hst_fit(trans_lis, pos_txt = 'sig_trimapril_pos.txt'):
+    pos = Table.read(pos_txt, format='ascii.fixed_width')
+    for ff in trans_lis:
+        t = pickle.load(open(ff, 'r'))
+        dxm, dym = t.evaluate(pos['x'], pos['y'])
+        xm = dxm + pos['x']
+        ym = dym + pos['y']
+        dxr = pos['xr'] - xm
+        dyr = pos['yr'] - ym
+        #dxd = pos['xr'] - pos['x']
+        #dyd = pos['yr'] - pos['y']
+        pref = ff.split('hst')[0]
+        iter_plots(dxr, dyr, pos_txt, pref+'hst') 
 
 
 def calc_err(lis_trans='trans.lis'):
@@ -721,36 +737,73 @@ def plot_err(xerr_f='dxerr.npy', yerr_f='dyerr.npy'):
     xerr = np.load(xerr_f)
     yerr = np.load(yerr_f)
 
+    #first print average errors
+    print 'mean x error: ', np.mean(xerr)
+    print 'mean y error: ', np.mean(yerr)
     llim = 0
-    ulim = .3
+    ulim = .2
     plt.figure(1)
     plt.clf()
-    plt.title('Distortion Solution Uncertainty (X)')
-    plt.xlabel('X (pix)')
-    plt.ylabel('Y (pix)')
+    plt.title('Distortion Solution Uncertainty (X)', fontsize=20)
+    plt.xlabel('X (pix)', fontsize=20)
+    plt.ylabel('Y (pix)', fontsize=20)
     plt.gray()
     plt.imshow(xerr, vmin=llim, vmax=ulim)
     cbar = plt.colorbar()
-    cbar.set_label('X error (pix)', rotation=270, labelpad =+25)
+    cbar.set_label('X error (pix)', rotation=270, labelpad =+25, fontsize=20)
     plt.axes().set_aspect('equal')
 
     plt.figure(2)
     plt.clf()
-    plt.title('Distortion Solution Uncertainty (Y)')
-    plt.xlabel('X (pix)')
-    plt.ylabel('Y (pix)')
+    plt.title('Distortion Solution Uncertainty (Y)', fontsize=20)
+    plt.xlabel('X (pix)', fontsize=20)
+    plt.ylabel('Y (pix)', fontsize=20)
     plt.gray()
     plt.imshow(yerr, vmin=llim, vmax=ulim)
     cbar = plt.colorbar()
-    cbar.set_label('Y error (pix)', rotation=270, labelpad =+25)
+    cbar.set_label('Y error (pix)', rotation=270, labelpad =+25, fontsize=20)
     plt.axes().set_aspect('equal')
 
     #make histogram of uncertainties
     plt.figure(3)
     plt.clf()
-    plt.title('Distortion Solution Uncertainty')
-    plt.xlabel('Error (pix)')
-    plt.ylabel('N')
+    plt.title('Distortion Solution Uncertainty', fontsize=20)
+    plt.axes().set_aspect('equal')
+
+    plt.figure(2)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty (Y)', fontsize=20)
+    plt.xlabel('X (pix)', fontsize=20)
+    plt.ylabel('Y (pix)', fontsize=20)
+    plt.gray()
+    plt.imshow(yerr, vmin=llim, vmax=ulim)
+    cbar = plt.colorbar()
+    cbar.set_label('Y error (pix)', rotation=270, labelpad =+25, fontsize=20)
+    plt.axes().set_aspect('equal')
+
+    #make histogram of uncertainties
+    plt.figure(3)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty', fontsize=20)
+    plt.axes().set_aspect('equal')
+
+    plt.figure(2)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty (Y)', fontsize=20)
+    plt.xlabel('X (pix)', fontsize=20)
+    plt.ylabel('Y (pix)', fontsize=20)
+    plt.gray()
+    plt.imshow(yerr, vmin=llim, vmax=ulim)
+    cbar = plt.colorbar()
+    cbar.set_label('Y error (pix)', rotation=270, labelpad =+25, fontsize=20)
+    plt.axes().set_aspect('equal')
+
+    #make histogram of uncertainties
+    plt.figure(3)
+    plt.clf()
+    plt.title('Distortion Solution Uncertainty', fontsize=20)
+    plt.xlabel('Error (pix)', fontsize=20)
+    plt.ylabel('N', fontsize=20)
     plt.hist(xerr.flatten(), histtype='step', bins=30, range=(0,.25), label='x', lw=3, normed=True,  color='red')
     plt.hist(yerr.flatten(),histtype='step', bins=30, range=(0,.25), label='y', lw=3, normed=True, linestyle='dashed',color='blue')
     plt.legend(loc='upper right')
@@ -765,23 +818,30 @@ def calc_chisq(trans_f, pos_f, add_err=0):
     '''
     t = pickle.load(open(trans_f, 'r'))
     tab = Table.read(pos_f, format='ascii.fixed_width')
-
+    #cut out points with 0 error
+    gbool = ( tab['xerr'] > 10**-8) * ( tab['yerr'] > 10**-8) * ( tab['xrerr'] > 10**-8) * ( tab['yrerr'] > 10**-8)
+    
     #compute model measuremtns from fit
     modx, mody = t.evaluate(tab['x'], tab['y'])
     datx = tab['xr'] - tab['x']
     daty = tab['yr'] - tab['y']
 
-    errx = (tab['xerr']**2+tab['xrerr']**2+add_err**2)
-    erry = (tab['yerr']**2+tab['yrerr']**2+add_err**2)
-    chix = np.sum((modx-datx)**2 / errx)
-    chiy = np.sum((mody-daty)**2 / erry)
-    print 'reduced Chi square X: ', chix / len(t.px.parameters)
-    print 'reduced Chi square Y: ', chiy / len(t.px.parameters)
+    errx = (tab['xerr'][gbool]**2+add_err**2+tab['xrerr'][gbool]**2)
+    erry = (tab['yerr'][gbool]**2+add_err**2+tab['yrerr'][gbool]**2)
+    chix = np.sum((modx[gbool]-datx[gbool])**2 / errx)
+    chiy = np.sum((mody[gbool]-daty[gbool])**2 / erry)
+    
+    
+    print 'reduced Chi square X: ', chix / (len(datx)-len(t.px.parameters))
+    print 'reduced Chi square Y: ', chiy / (len(datx)-len(t.px.parameters))
     print 'Number of free parameters in X fit', len(t.px.parameters)
+
+    #import pdb;pdb.set_trace()
 
     return chix, chiy,  len(t.px.parameters), len(datx)
 
-def calc_prob(trans_lis, pos_lis, add_err=0):
+
+def calc_prob(trans_lis, pos_lis, add_err=0, plot=True):
     '''
     '''
 
@@ -797,25 +857,55 @@ def calc_prob(trans_lis, pos_lis, add_err=0):
         npar.append(npart)
         ndata.append(ndatat)
 
-    chix = np.array(chix)
-    chiy = np.array(cjiy)
+    chi2x = np.array(chix)
+    chi2y = np.array(chiy)
     ndata = np.array(ndata)
         
-    probx = []
-    proby = []
-    for i in range(len(chix)-1):
-        #now , need to integrate the f-distribution from ratio of chi-squares to infinity
-        ratx = ((chix[i]) - (chix[i+1])) / (npar[i+1]-npar[i]) /  (chix[i+1]/(ndata[i]-npar[i+1]))
-        raty = ((chiy[i]) - (chiy[i+1])) / (npar[i+1]-npar[i]) /  (chiy[i+1]/(ndata[i]-npar[i+1]))
     
+    #for i in range(len(chix)-1):
+        #now , need to integrate the f-distribution from ratio of chi-squares to infinity
+        #ratx = ((chix[i]) - (chix[i+1])) / (npar[i+1]-npar[i])  /  (chix[i+1]/(ndata[i]-npar[i+1]))
+        #raty = ((chiy[i]) - (chiy[i+1])) / (npar[i+1]-npar[i]) /  (chiy[i+1]/(ndata[i]-npar[i+1]))
+
+        #import pdb;pdb.set_trace()
         #raty = ((chiy[i]/nfree[i]) - (chiy[i+1]/nfree[i+1])) /  (chiy[i+1]/nfree[i+1])
         #import pdb;pdb.set_trace()
-        tmpx = 1.0-quad(fdist.pdf , ratx, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
-        tmpy = 1.0-quad(fdist.pdf , raty, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
-        probx.append(tmpx)
-        proby.append(tmpy)
+        #tmpx = 1.0-quad(fdist.pdf , ratx, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
+        #tmpy = 1.0-quad(fdist.pdf , raty, np.inf, args=(ndata[i]-npar[i], ndata[i+1]-npar[i+1]))[0]
+    ftest_dof1 = np.diff(npar)
+    ftest_dof2 = ndata[1:] - npar[1:]
+    ftest_dof_ratio = 1.0 / ((1.0*ftest_dof1) / (1.0*ftest_dof2))
+    ftest_x = (-1 * np.diff(chi2x) / chi2x[1:]) * ftest_dof_ratio
+    ftest_y = (-1 * np.diff(chi2y) / chi2y[1:]) * ftest_dof_ratio
+    
 
-    return probx, proby,  chix, chiy
+    #import pdb;pdb.set_trace()
+    ftest_m = np.array([3,4,5,6,7,8])
+    px_value = np.zeros(len(ftest_m), dtype=float)
+    py_value = np.zeros(len(ftest_m), dtype=float)
+
+    for mm in range(len(ftest_m)):
+        px_value[mm] = stats.f.sf(ftest_x[mm], ftest_dof1[mm], ftest_dof2[mm])
+        py_value[mm] = stats.f.sf(ftest_y[mm], ftest_dof1[mm], ftest_dof2[mm])
+        tmpx = quad(fdist.pdf , ftest_x[mm], np.inf, args=(ftest_dof1[mm], ftest_dof2[mm]))
+        tmpy = quad(fdist.pdf , ftest_y[mm], np.inf, args=(ftest_dof1[mm], ftest_dof2[mm]))
+        #print tmpy, tmpx
+        #import pdb;pdb.set_trace()
+        fmt = 'M = {0}: M-1 --> M   Fx = {1:5.2f} px = {2:7.4f}   Fy = {3:5.2f} py = {4:7.4f}'
+        print fmt.format(ftest_m[mm], ftest_x[mm], px_value[mm], ftest_y[mm], py_value[mm])
+
+        #probx.append(tmpx)
+        #proby.append(tmpy)
+
+    if plot:
+        plt.clf()
+        plt.scatter(ftest_m, ftest_x, label='x', color='blue')
+        plt.scatter(ftest_m, ftest_y, label='y', color='red')
+        plt.legend(loc='upper right')
+        plt.xlabel('M')
+        plt.ylabel('F value M - 1 -> M')
+        
+    return px_value, py_value,  ftest_x, ftest_y, chi2x, chi2y
         
 
     

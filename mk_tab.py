@@ -6,7 +6,7 @@ from astropy.io import fits
 def write_tab(strehl_file='strehl_source.txt', frame_file = 'first_fits_m.lis', date='april', off_f='offsets.dat'):
     '''
     reads in some files, looks for the data
-    writes out the table I want for the data quality of the paper
+    writes out the table I want for the data quality table for the paper
     '''
 
     off_tab = Table.read(off_f, format='ascii.fixed_width')
